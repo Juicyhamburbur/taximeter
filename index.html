@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TaxiMeter" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <title>TaxiMeter</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:        #0a0a0f;
+      --panel:     #10101a;
+      --border:    #1e1e2e;
+      --amber:     #ffb300;
+      --amber-dim: #7a5500;
+      --amber-glow:#ffb30044;
+      --green:     #00e676;
+      --red:       #ff1744;
+      --text-muted:#4a4a6a;
+      --text-dim:  #2a2a4a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Subtle scanline texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+      padding-top: max(env(safe-area-inset-top), 20px);
+      padding-bottom: max(env(safe-area-inset-bottom), 20px);
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px 16px;
+    }
+
+    .logo {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 6px;
+      color: var(--amber-dim);
+      text-transform: uppercase;
+    }
+
+    .settings-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .settings-btn:active { border-color: var(--amber); color: var(--amber); }
+
+    /* ── MAIN FARE DISPLAY ── */
+    .fare-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .fare-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--text-muted);
+    }
+
+    .fare-display {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      filter: drop-shadow(0 0 30px var(--amber-glow));
+    }
+
+    /* Ghost digits (unlit segments) */
+    .fare-display::before {
+      content: attr(data-ghost);
+      position: absolute;
+      inset: 0;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(60px, 18vw, 88px);
+      font-weight: normal;
+      color: var(--text-dim);
+      pointer-events: none;
+      letter-spacing: 2px;
+    }
+
+    .currency {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(24px, 7vw, 36px);
+      color: var(--amber);
+      opacity: 0.7;
+      margin-top: clamp(10px, 3vw, 16px);
+      margin-right: 2px;
+    }
+
+    .fare-number {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(60px, 18vw, 88px);
+      color: var(--amber);
+      letter-spacing: 2px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+
+    .fare-number.ticking {
+      animation: tick 0.12s ease-out;
+    }
+
+    @keyframes tick {
+      0%   { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── STAT CARDS ── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 0 0 20px;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .stat-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── STATUS DOT ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding-bottom: 20px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+    }
+
+    .status-dot.running {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .status-dot.ended {
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .status-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--text-muted);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      text-transform: uppercase;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-start {
+      background: var(--green);
+      color: #000;
+      box-shadow: 0 6px 24px rgba(0,230,118,0.35);
+    }
+
+    .btn-end {
+      background: var(--red);
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(255,23,68,0.35);
+    }
+
+    .btn-new {
+      background: var(--amber);
+      color: #000;
+      box-shadow: 0 6px 24px rgba(255,179,0,0.35);
+    }
+
+    .trip-complete-label {
+      text-align: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--green);
+      margin-bottom: 14px;
+    }
+
+    /* ── GPS ERROR ── */
+    .gps-error {
+      background: rgba(255,23,68,0.1);
+      border: 1px solid rgba(255,23,68,0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255,100,100,0.9);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    /* ── SETTINGS OVERLAY ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .settings-sheet {
+      width: 100%;
+      background: #13131f;
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 24px max(env(safe-area-inset-bottom), 28px);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .overlay.open .settings-sheet {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .sheet-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 5px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field:last-of-type { border-bottom: none; }
+
+    .field-label {
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .field-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .field-input {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--amber);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      padding: 8px 12px;
+      width: 100px;
+      text-align: right;
+      outline: none;
+    }
+
+    .field-input:focus { border-color: var(--amber); }
+
+    .sheet-done {
+      margin-top: 24px;
+      width: 100%;
+      padding: 14px;
+      background: var(--amber);
+      border: none;
+      border-radius: 12px;
+      color: #000;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 3px;
+      cursor: pointer;
+    }
+
+    /* hidden utility */
+    .hidden { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">Taximeter</div>
+      <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+    </div>
+
+    <!-- Fare -->
+    <div class="fare-section">
+      <div class="fare-label">FARE</div>
+      <div class="fare-display" data-ghost="£00.00">
+        <span class="currency">£</span>
+        <span class="fare-number" id="fareDisplay">00.00</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Distance</div>
+        <div class="stat-value" id="distDisplay">0.00 mi</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Per Mile</div>
+        <div class="stat-value" id="rateDisplay">£2.50</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Base Fare</div>
+        <div class="stat-value" id="baseDisplay">£3.00</div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-row">
+      <div class="status-dot" id="statusDot"></div>
+      <div class="status-text" id="statusText">READY</div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls">
+
+      <!-- GPS denied warning (hidden by default) -->
+      <div class="gps-error hidden" id="gpsError">
+        Location access denied.<br/>
+        Go to Settings → Safari → Location → Allow.
+      </div>
+
+      <!-- Ready state: show Start -->
+      <button class="btn btn-start" id="btnStart">Start Trip</button>
+
+      <!-- Running state: show End (hidden initially) -->
+      <button class="btn btn-end hidden" id="btnEnd">End Trip</button>
+
+      <!-- Ended state (hidden initially) -->
+      <div class="hidden" id="endedBlock">
+        <div class="trip-complete-label">— TRIP COMPLETE —</div>
+        <button class="btn btn-new" id="btnNew">New Trip</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Settings Sheet -->
+  <div class="overlay" id="overlay">
+    <div class="settings-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">FARE SETTINGS</div>
+
+      <div class="field">
+        <div>
+          <div class="field-label">Base Fare</div>
+          <div class="field-sub">Charged when trip starts</div>
+        </div>
+        <input class="field-input" id="inputBase" type="number" min="0" step="0.10" value="3.00" />
+      </div>
+
+      <div class="field">
+        <div>
+          <div class="field-label">Rate per Mile</div>
+          <div class="field-sub">£ charged per mile driven</div>
+        </div>
+        <input class="field-input" id="inputRate" type="number" min="0" step="0.10" value="2.50" />
+      </div>
+
+      <button class="sheet-done" id="sheetDone">Done</button>
+    </div>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────
+    let baseFare    = 3.00;
+    let ratePerMile = 2.50;
+    let fare        = 0;
+    let distMiles   = 0;
+    let isRunning   = false;
+    let watchId     = null;
+    let prevLatLng  = null;
+    let wakeLock    = null;
+
+    // ── DOM refs ───────────────────────────────────────────
+    const fareEl    = document.getElementById('fareDisplay');
+    const distEl    = document.getElementById('distDisplay');
+    const rateEl    = document.getElementById('rateDisplay');
+    const baseEl    = document.getElementById('baseDisplay');
+    const dotEl     = document.getElementById('statusDot');
+    const statusEl  = document.getElementById('statusText');
+    const btnStart  = document.getElementById('btnStart');
+    const btnEnd    = document.getElementById('btnEnd');
+    const endedBlk  = document.getElementById('endedBlock');
+    const btnNew    = document.getElementById('btnNew');
+    const gpsErr    = document.getElementById('gpsError');
+    const overlay   = document.getElementById('overlay');
+    const fareDisp  = document.querySelector('.fare-display');
+
+    // ── Helpers ────────────────────────────────────────────
+    function haversineMetres(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) ** 2 +
+                Math.cos(lat1 * Math.PI/180) *
+                Math.cos(lat2 * Math.PI/180) *
+                Math.sin(dLon/2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function fmtFare(n) {
+      return n.toFixed(2).padStart(5, '0');
+    }
+
+    function updateUI() {
+      const f = fmtFare(fare);
+      fareEl.textContent = f;
+
+      // Ghost digits mirror length
+      fareDisp.setAttribute('data-ghost', '£' + '0'.repeat(f.length - f.replace(/0/g,'').length > 2 ? 0 : f.length));
+
+      distEl.textContent  = distMiles.toFixed(2) + ' mi';
+      rateEl.textContent  = '£' + ratePerMile.toFixed(2);
+      baseEl.textContent  = '£' + baseFare.toFixed(2);
+    }
+
+    function tickFare() {
+      fareEl.classList.remove('ticking');
+      void fareEl.offsetWidth; // reflow to restart animation
+      fareEl.classList.add('ticking');
+      setTimeout(() => fareEl.classList.remove('ticking'), 150);
+    }
+
+    // ── Screen Wake Lock ───────────────────────────────────
+    async function acquireWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch(e) { /* silently fail — not critical */ }
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    }
+
+    // Re-acquire wake lock if page becomes visible again
+    document.addEventListener('visibilitychange', () => {
+      if (isRunning && document.visibilityState === 'visible') acquireWakeLock();
+    });
+
+    // ── GPS ────────────────────────────────────────────────
+    function onPosition(pos) {
+      gpsErr.classList.add('hidden');
+
+      const { latitude, longitude, accuracy } = pos.coords;
+
+      // Ignore fixes worse than 40 metres
+      if (accuracy > 40) return;
+
+      if (prevLatLng) {
+        const metres = haversineMetres(prevLatLng[0], prevLatLng[1], latitude, longitude);
+        const miles  = metres / 1609.344;
+        distMiles += miles;
+        const newFare = baseFare + (distMiles * ratePerMile);
+        if (Math.round(newFare * 100) !== Math.round(fare * 100)) {
+          tickFare();
+        }
+        fare = newFare;
+        updateUI();
+      }
+
+      prevLatLng = [latitude, longitude];
+    }
+
+    function onGpsError(err) {
+      if (err.code === err.PERMISSION_DENIED) {
+        gpsErr.classList.remove('hidden');
+        stopTrip();
+      }
+    }
+
+    function startWatching() {
+      if (!navigator.geolocation) {
+        gpsErr.textContent = 'GPS not available in this browser.';
+        gpsErr.classList.remove('hidden');
+        return false;
+      }
+      watchId = navigator.geolocation.watchPosition(
+        onPosition,
+        onGpsError,
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      );
+      return true;
+    }
+
+    function stopWatching() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    }
+
+    // ── Trip control ───────────────────────────────────────
+    function startTrip() {
+      fare      = baseFare;
+      distMiles = 0;
+      prevLatLng = null;
+      isRunning  = true;
+
+      if (!startWatching()) { isRunning = false; return; }
+
+      acquireWakeLock();
+
+      btnStart.classList.add('hidden');
+      btnEnd.classList.remove('hidden');
+      endedBlk.classList.add('hidden');
+      gpsErr.classList.add('hidden');
+
+      dotEl.className   = 'status-dot running';
+      statusEl.textContent = 'METER RUNNING';
+
+      updateUI();
+    }
+
+    function stopTrip() {
+      isRunning = false;
+      stopWatching();
+      releaseWakeLock();
+
+      btnEnd.classList.add('hidden');
+      btnStart.classList.add('hidden');
+      endedBlk.classList.remove('hidden');
+
+      dotEl.className      = 'status-dot ended';
+      statusEl.textContent = 'TRIP ENDED';
+    }
+
+    function resetTrip() {
+      fare      = 0;
+      distMiles = 0;
+      prevLatLng = null;
+
+      endedBlk.classList.add('hidden');
+      btnStart.classList.remove('hidden');
+
+      dotEl.className      = 'status-dot';
+      statusEl.textContent = 'READY';
+
+      updateUI();
+    }
+
+    // ── Button events ──────────────────────────────────────
+    btnStart.addEventListener('click', startTrip);
+    btnEnd.addEventListener('click', stopTrip);
+    btnNew.addEventListener('click', resetTrip);
+
+    // ── Settings ───────────────────────────────────────────
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      document.getElementById('inputBase').value = baseFare.toFixed(2);
+      document.getElementById('inputRate').value = ratePerMile.toFixed(2);
+      overlay.classList.add('open');
+    });
+
+    document.getElementById('sheetDone').addEventListener('click', () => {
+      const b = parseFloat(document.getElementById('inputBase').value);
+      const r = parseFloat(document.getElementById('inputRate').value);
+      if (!isNaN(b) && b >= 0) baseFare    = b;
+      if (!isNaN(r) && r >= 0) ratePerMile = r;
+      overlay.classList.remove('open');
+      updateUI();
+    });
+
+    // Close sheet on overlay tap
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+
+    // ── Service Worker ─────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // ── Init ───────────────────────────────────────────────
+    updateUI();
+  </script>
+</body>
+</html>
