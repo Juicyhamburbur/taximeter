@@ -943,26 +943,18 @@ function renderArticle(html, title) {
     else if (src.startsWith('/')) img.setAttribute('src', 'https://en.wikipedia.org' + src);
   });
 
-  // Process links
+  // Tag links with data attributes (survives innerHTML serialisation)
   temp.querySelectorAll('a[href]').forEach(a => {
     const href = a.getAttribute('href') || '';
     if (href.startsWith('/wiki/') && !href.includes(':')) {
-      // Internal wiki link
       const linkedTitle = decodeURIComponent(href.replace('/wiki/', '').split('#')[0]);
       a.classList.add('wiki-link');
       a.setAttribute('data-wiki-title', linkedTitle);
-      a.href = '#';
-      a.onclick = (e) => {
-        e.preventDefault();
-        navigateTo(linkedTitle, true);
-        document.querySelector('.article-frame').scrollTop = 0;
-      };
-    } else if (href.startsWith('#')) {
-      // In-page anchor - allow
+      a.setAttribute('href', '#');
     } else {
-      // External - disable
-      a.href = '#';
-      a.onclick = (e) => e.preventDefault();
+      // Disable all non-wiki links
+      a.setAttribute('href', '#');
+      a.setAttribute('data-external', '1');
       a.style.cursor = 'default';
       a.style.color = 'inherit';
       a.style.textDecoration = 'none';
@@ -1076,6 +1068,24 @@ function giveUp() {
   generateNewPrompt().then(() => {});
   showScreen('home');
 }
+
+// ── EVENT DELEGATION for wiki links ──
+document.querySelector('.article-frame').addEventListener('click', e => {
+  let el = e.target;
+  while (el && el !== e.currentTarget) {
+    if (el.tagName === 'A') {
+      e.preventDefault();
+      if (el.dataset.external) return; // disabled external link
+      const wikiTitle = el.dataset.wikiTitle;
+      if (wikiTitle) {
+        document.querySelector('.article-frame').scrollTop = 0;
+        navigateTo(wikiTitle, true);
+      }
+      return;
+    }
+    el = el.parentElement;
+  }
+});
 
 // ── INIT ──
 loadStats();
