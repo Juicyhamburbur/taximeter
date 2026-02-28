@@ -1456,7 +1456,7 @@ function dStart(){
   Object.assign(D,{running:true,secs:0,distMi:0,topSpd:0,topAccel:0,
     prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[],warmup:0,brakes:[]});
   Object.assign(D.perf,{state:'idle',startTS:0,startPos:null,launchDist:0,elapsed:0,
-    hit30:false,t30:0,hit60:false,t60:0,hitQmi:false,tQmi:0,animID:null});
+    hit30:false,t30:0,hit60:false,t60:0,hitQmi:false,tQmi:0,animID:null,peakMph:0});
   // UI switch
   $('dtIdle').style.display='none';
   $('dtRec').classList.add('active');
@@ -1521,19 +1521,24 @@ function dOnPos(pos){
 // ── PERFORMANCE TIMER ENGINE ──────────────────────────────
 function perfUpdate(mph,lat,lon,ts){
   const p=D.perf;
+  const isQmi=perfRunIdx===2;
+
   if(p.state==='idle'){
-    // Auto-arm when nearly stationary
-    if(mph<3){p.state='armed';perfShowStrip();}
+    // Quarter mile: near-complete stop required (<1.5 mph).
+    // 0-30 and 0-60: forgiving (<3 mph).
+    const armThr=isQmi?1.5:3;
+    if(mph<armThr){p.state='armed';perfShowStrip();}
     return;
   }
+
   if(p.state==='armed'){
-    if(mph>=3){
-      // Launch detected
+    const armThr=isQmi?1.5:3;
+    if(mph>=armThr){
+      // Launch
       p.state='running';p.startTS=ts;p.startPos=[lat,lon];
       p.launchDist=D.distMi;p.hit30=false;p.hit60=false;p.hitQmi=false;
-      p.t30=0;p.t60=0;p.tQmi=0;
+      p.t30=0;p.t60=0;p.tQmi=0;p.peakMph=0;
       perfShowStrip();
-      // Start rAF timer
       function rafLoop(){
         if(p.state!=='running')return;
         p.elapsed=(Date.now()-p.startTS)/1000;
@@ -1541,34 +1546,44 @@ function perfUpdate(mph,lat,lon,ts){
         p.animID=requestAnimationFrame(rafLoop);
       }
       p.animID=requestAnimationFrame(rafLoop);
-    } else if(mph>=2){/* still rolling slowly, stay armed */}
+    }
     return;
   }
+
   if(p.state==='running'){
-    const elapsed=(ts-p.startTS)/1000;  // ts in ms
-    // 0–30
+    const elapsed=(ts-p.startTS)/1000;
+    if(mph>p.peakMph)p.peakMph=mph;
+
+    // -- Cancellation rules --
+    // QMI: if peak hasn't hit 20 mph by 8s it was an accidental trigger
+    if(isQmi&&elapsed>8&&p.peakMph<20){perfCancel();return;}
+    // QMI: hard 45-second cap
+    if(isQmi&&elapsed>45){perfCancel();return;}
+    // All modes: speed fell back under 3 mph before target hit
+    if(elapsed>6&&mph<3){perfCancel();return;}
+
+    // -- Target checks --
     if(!p.hit30&&mph>=30){p.hit30=true;p.t30=elapsed;}
-    // 0–60
     if(!p.hit60&&mph>=60){p.hit60=true;p.t60=elapsed;
       if(perfRunIdx===1)perfRunComplete('0–60 mph',p.t60,'t60',lat,lon);}
-    // 0–30 finish
     if(perfRunIdx===0&&p.hit30&&!p.hitQmi){
-      // treat as done for 0-30 run
       p.hitQmi=true;
       perfRunComplete('0–30 mph',p.t30,'t30',lat,lon);
     }
-    // Quarter mile: 402.336m = 0.25 mi from launch
-    const distFromLaunch=(D.distMi-p.launchDist)*1609.344; // metres
+    const distFromLaunch=(D.distMi-p.launchDist)*1609.344;
     if(!p.hitQmi&&distFromLaunch>=402.336){
       p.hitQmi=true;p.tQmi=elapsed;
       if(perfRunIdx===2)perfRunComplete('¼ Mile',p.tQmi,'tQmi',lat,lon);
     }
-    // Auto-stop if all targets hit or speed drops off again (>10s into run)
-    if(elapsed>10&&mph<5){
-      if(p.animID){cancelAnimationFrame(p.animID);p.animID=null;}
-      p.state='idle';perfHideStrip();
-    }
   }
+}
+
+function perfCancel(){
+  const p=D.perf;
+  if(p.animID){cancelAnimationFrame(p.animID);p.animID=null;}
+  p.state='idle';
+  $('perfTime').textContent='--';
+  setTimeout(perfHideStrip,700);
 }
 function perfShowStrip(){
   const s=$('perfStrip'),arm=$('perfArmBadge'),lbl=$('perfLabel');
