@@ -14,613 +14,329 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-/* ═══════════════════════════════════════════════
-   APEX TELEMETRY — Core Variables
-═══════════════════════════════════════════════ */
 :root {
-  --bg:         #05050C;
-  --surface:    #09091A;
-  --surface-2:  #0E0E22;
-  --surface-3:  #131330;
-  --accent:     #FF3D00;
-  --accent-dim: rgba(255,61,0,0.18);
-  --accent-glow:rgba(255,61,0,0.5);
-  --cyan:       #00CFFF;
-  --cyan-dim:   rgba(0,207,255,0.15);
-  --cyan-glow:  rgba(0,207,255,0.4);
-  --gold:       #FFB800;
-  --green:      #00E676;
-  --white:      #F0F0FF;
-  --text-2:     #7070A0;
-  --text-3:     #30305A;
-  --border:     rgba(255,255,255,0.045);
-  --border-a:   rgba(255,61,0,0.2);
-  --font-d:     'Orbitron', monospace;
-  --font-ui:    'Barlow Condensed', sans-serif;
-  --safe-t:     env(safe-area-inset-top, 0px);
-  --safe-b:     env(safe-area-inset-bottom, 0px);
+  --bg:#05050C; --surface:#09091A; --surface-2:#0E0E22; --surface-3:#131330;
+  --accent:#FF3D00; --accent-dim:rgba(255,61,0,0.18); --accent-glow:rgba(255,61,0,0.5);
+  --cyan:#00CFFF; --cyan-dim:rgba(0,207,255,0.15); --cyan-glow:rgba(0,207,255,0.4);
+  --gold:#FFB800; --green:#00E676; --white:#F0F0FF;
+  --text-2:#7070A0; --text-3:#30305A;
+  --border:rgba(255,255,255,0.045);
+  --font-d:'Orbitron',monospace; --font-ui:'Barlow Condensed',sans-serif;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:var(--font-ui)}
+button{background:none;border:none;cursor:pointer;font-family:inherit;color:inherit}
+canvas{display:block}
+body::before{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px)}
 
-/* ═══════ RESET & BASE ═══════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--white); font-family: var(--font-ui); }
-button { background: none; border: none; cursor: pointer; font-family: inherit; color: inherit; }
-canvas { display: block; }
+/* ── APP SHELL ── */
+#app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding-top:var(--safe-t);padding-bottom:var(--safe-b);overflow:hidden}
 
-/* ═══════ SCANLINE OVERLAY ═══════ */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-}
+/* ── HEADER ── */
+#header{height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(to bottom,rgba(9,9,26,0.98),rgba(9,9,26,0.85));position:relative;z-index:20}
+.header-logo{display:flex;align-items:center;gap:8px}
+.logo-mark{width:28px;height:28px}
+.logo-mark svg{width:100%;height:100%}
+.logo-text{font-family:var(--font-d);font-size:16px;font-weight:900;letter-spacing:.15em;color:var(--white)}
+.logo-text span{color:var(--accent)}
+.header-status{display:flex;align-items:center;gap:10px}
+.gps-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  border:1px solid var(--border);background:var(--surface);
+  font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);transition:all .4s}
+.gps-badge.active{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.08);box-shadow:0 0 10px rgba(0,230,118,.15)}
+.gps-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);transition:background .4s}
+.gps-badge.active .gps-dot{background:var(--green);animation:pdot 1.5s infinite}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+.header-clock{font-family:var(--font-d);font-size:11px;font-weight:500;color:var(--text-2);letter-spacing:.08em}
+.drive-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  background:rgba(255,61,0,.12);border:1px solid var(--accent);color:var(--accent);
+  box-shadow:0 0 10px rgba(255,61,0,.2);cursor:pointer;transition:all .2s}
+.drive-badge .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pdot 1s infinite}
+.drive-badge:active{transform:scale(.95)}
 
-/* ═══════ APP SHELL ═══════ */
-#app {
-  position: fixed; inset: 0;
-  display: flex; flex-direction: column;
-  padding-top: var(--safe-t);
-  padding-bottom: var(--safe-b);
-  overflow: hidden;
-}
+/* ── SCREENS ── */
+#screens{flex:1;overflow:hidden;position:relative;min-height:0}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transform:translateY(6px);
+  transition:opacity .22s,transform .22s;overflow:hidden}
+.screen.active{opacity:1;pointer-events:all;transform:translateY(0)}
 
-/* ═══════ HEADER ═══════ */
-#header {
-  height: 52px; min-height: 52px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(to bottom, rgba(9,9,26,0.98), rgba(9,9,26,0.85));
-  position: relative; z-index: 10;
-}
-.header-logo {
-  display: flex; align-items: center; gap: 8px;
-}
-.header-logo .logo-mark {
-  width: 28px; height: 28px; position: relative;
-}
-.header-logo .logo-mark svg { width: 100%; height: 100%; }
-.logo-text {
-  font-family: var(--font-d); font-size: 16px; font-weight: 900;
-  letter-spacing: 0.15em; color: var(--white);
-}
-.logo-text span { color: var(--accent); }
-.header-status {
-  display: flex; align-items: center; gap: 12px;
-}
-.gps-badge {
-  display: flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--text-2);
-  transition: all 0.4s ease;
-}
-.gps-badge.active {
-  border-color: var(--green);
-  color: var(--green);
-  background: rgba(0,230,118,0.08);
-  box-shadow: 0 0 10px rgba(0,230,118,0.15);
-}
-.gps-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--text-3);
-  transition: background 0.4s;
-}
-.gps-badge.active .gps-dot { background: var(--green); animation: pulse-dot 1.5s infinite; }
-@keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
+/* ── NAV ── */
+#nav{height:62px;min-height:62px;display:flex;align-items:stretch;
+  border-top:1px solid var(--border);background:rgba(5,5,12,.97);position:relative;z-index:20}
+#nav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(to right,transparent,var(--accent-dim),transparent)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;position:relative;color:var(--text-3);transition:color .2s}
+.nav-btn svg{width:20px;height:20px}
+.nav-btn span{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.nav-btn.active{color:var(--accent)}
+.nav-btn.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;
+  background:var(--accent);box-shadow:0 0 12px var(--accent-glow);border-radius:0 0 2px 2px}
+.nav-btn.active svg{filter:drop-shadow(0 0 6px var(--accent-glow))}
 
-.header-clock {
-  font-family: var(--font-d); font-size: 11px; font-weight: 500;
-  color: var(--text-2); letter-spacing: 0.08em;
-}
+/* ════════════════════════════
+   START DRIVE OVERLAY
+════════════════════════════ */
+#drive-overlay{position:absolute;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(5,5,12,.96);gap:0;
+  transition:opacity .5s,visibility .5s}
+#drive-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.drive-overlay-logo{font-family:var(--font-d);font-size:12px;font-weight:700;
+  letter-spacing:.35em;color:var(--text-2);text-transform:uppercase;margin-bottom:44px}
+.drive-overlay-logo span{color:var(--accent)}
+.start-btn-outer{width:180px;height:180px;border-radius:50%;
+  border:2px solid rgba(255,61,0,.18);display:flex;align-items:center;justify-content:center;
+  position:relative;animation:halo 4s ease-in-out infinite}
+@keyframes halo{0%,100%{box-shadow:0 0 0 0 rgba(255,61,0,0),0 0 30px rgba(255,61,0,.05)}
+  50%{box-shadow:0 0 0 14px rgba(255,61,0,.04),0 0 60px rgba(255,61,0,.14)}}
+.start-btn-outer::before{content:'';position:absolute;inset:-12px;border-radius:50%;
+  border:1px solid rgba(255,61,0,.07)}
+.start-btn-outer::after{content:'';position:absolute;inset:-26px;border-radius:50%;
+  border:1px dashed rgba(255,61,0,.04);animation:spin-d 25s linear infinite}
+@keyframes spin-d{to{transform:rotate(360deg)}}
+.start-btn-inner{width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,rgba(255,100,30,.22),rgba(180,20,0,.58) 60%,rgba(5,5,12,.9));
+  border:2px solid var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  box-shadow:0 0 40px rgba(255,61,0,.28),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .12s,box-shadow .12s;cursor:pointer}
+.start-btn-inner:active{transform:scale(.93);box-shadow:0 0 18px rgba(255,61,0,.18)}
+.start-btn-label{font-family:var(--font-d);font-size:20px;font-weight:900;letter-spacing:.12em;color:var(--white)}
+.start-btn-sub{font-size:10px;font-weight:600;letter-spacing:.2em;color:rgba(255,255,255,.35);text-transform:uppercase}
+.drive-overlay-status{margin-top:48px;font-size:11px;font-weight:600;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--text-3);text-align:center;line-height:2}
+#overlay-gps{color:var(--text-2);transition:color .4s}
+#overlay-gps.ok{color:var(--green)}
 
-/* ═══════ SCREENS ═══════ */
-#screens {
-  flex: 1; overflow: hidden; position: relative;
-}
-.screen {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  opacity: 0; pointer-events: none;
-  transform: translateY(6px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
-  overflow: hidden;
-}
-.screen.active {
-  opacity: 1; pointer-events: all; transform: translateY(0);
-}
+/* ════════════════════════════
+   END DRIVE MODAL
+════════════════════════════ */
+#end-modal{position:fixed;inset:0;z-index:9999;background:rgba(5,5,12,.9);
+  backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:32px;
+  opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+#end-modal.show{opacity:1;visibility:visible}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:28px 24px;width:100%;max-width:300px;text-align:center;position:relative;overflow:hidden}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,transparent,var(--accent),transparent)}
+.modal-title{font-family:var(--font-d);font-size:16px;font-weight:700;letter-spacing:.1em;margin-bottom:10px}
+.modal-sub{font-size:14px;color:var(--text-2);line-height:1.5;margin-bottom:24px}
+.modal-btns{display:flex;gap:10px}
+.modal-btn{flex:1;padding:14px;border-radius:10px;font-family:var(--font-ui);
+  font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--border);color:var(--text-2);background:var(--surface-2)}
+.modal-btn.danger{background:var(--accent);border-color:var(--accent);color:#fff}
 
-/* ═══════ NAV BAR ═══════ */
-#nav {
-  height: 62px; min-height: 62px;
-  display: flex; align-items: stretch;
-  border-top: 1px solid var(--border);
-  background: rgba(5,5,12,0.97);
-  position: relative; z-index: 10;
-}
-#nav::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(to right, transparent, var(--accent-dim), transparent);
-}
-.nav-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 4px; position: relative;
-  color: var(--text-3); transition: color 0.2s;
-}
-.nav-btn svg { width: 20px; height: 20px; transition: all 0.2s; }
-.nav-btn span {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.nav-btn.active { color: var(--accent); }
-.nav-btn.active::after {
-  content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow);
-  border-radius: 0 0 2px 2px;
-}
-.nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent-glow)); }
+/* ════════════════════════════
+   GAUGE SCREEN
+════════════════════════════ */
+#screen-gauge{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.speed-mode-badge{text-align:center;padding:6px 0 0}
+.speed-mode-badge span{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.25em;
+  text-transform:uppercase;padding:3px 14px;border-radius:2px;border:1px solid var(--text-3);
+  color:var(--text-2);transition:all .4s}
+.speed-mode-badge span.mode-track{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);box-shadow:0 0 15px var(--accent-dim)}
+.speed-mode-badge span.mode-highway{border-color:var(--gold);color:var(--gold);background:rgba(255,184,0,.08)}
+.speed-mode-badge span.mode-road{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim)}
+.speedo-wrap{display:flex;justify-content:center;align-items:center;padding:8px 0 4px;position:relative}
+.speedo-wrap::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle at 50% 60%,rgba(255,61,0,.06),transparent 70%);pointer-events:none}
+#speedo-canvas{position:relative;z-index:1}
+.mini-gauges{display:flex;gap:10px;padding:0 14px 10px}
+.mini-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;overflow:hidden}
+.mini-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(to right,transparent,var(--border),transparent)}
+.mini-card-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-2)}
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 14px 10px}
+.stat-cell{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:10px 8px;text-align:center;position:relative;overflow:hidden}
+.stat-cell::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--border)}
+.stat-cell.accent-cell::after{background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+.stat-cell.cyan-cell::after{background:var(--cyan);box-shadow:0 0 8px var(--cyan-glow)}
+.stat-cell .stat-val{font-family:var(--font-d);font-size:15px;font-weight:700;color:var(--white);line-height:1;letter-spacing:-.02em}
+.stat-cell .stat-lbl{font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);margin-top:4px}
+.unit-toggle{display:flex;margin:0 14px 8px;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.unit-btn{flex:1;padding:7px;font-family:var(--font-ui);font-size:11px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);background:var(--surface);
+  transition:all .2s;border-right:1px solid var(--border)}
+.unit-btn:last-child{border-right:none}
+.unit-btn.active{background:var(--accent);color:var(--white)}
 
-/* ═══════ ──────────────────── ═══════
-   SCREEN 1: GAUGE
-═══════ ──────────────────── ═══════ */
-#screen-gauge {
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px;
-}
-.speed-mode-badge {
-  text-align: center; padding: 6px 0 0;
-}
-.speed-mode-badge span {
-  display: inline-block; font-family: var(--font-ui); font-size: 11px;
-  font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
-  padding: 3px 14px; border-radius: 2px;
-  border: 1px solid var(--text-3); color: var(--text-2);
-  transition: all 0.4s ease;
-}
-.speed-mode-badge span.mode-track {
-  border-color: var(--accent); color: var(--accent);
-  background: var(--accent-dim);
-  box-shadow: 0 0 15px var(--accent-dim);
-}
-.speed-mode-badge span.mode-highway {
-  border-color: var(--gold); color: var(--gold);
-  background: rgba(255,184,0,0.08);
-}
-.speed-mode-badge span.mode-road {
-  border-color: var(--cyan); color: var(--cyan);
-  background: var(--cyan-dim);
-}
+/* ════════════════════════════
+   MAP SCREEN
+════════════════════════════ */
+#screen-map{position:relative;overflow:hidden}
+#map-container{position:absolute;inset:0;z-index:1}
+#map{position:absolute;inset:0;width:100%;height:100%}
+#map-nodrive{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--surface);gap:14px}
+#map-nodrive svg{width:52px;height:52px;color:var(--text-3)}
+#map-nodrive p{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+.map-overlay{position:absolute;top:12px;left:12px;right:12px;z-index:400;
+  pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.map-speed-box{background:rgba(5,5,12,.88);border:1px solid var(--accent);border-radius:10px;
+  padding:10px 16px;text-align:center;backdrop-filter:blur(16px);
+  box-shadow:0 0 20px rgba(255,61,0,.2),inset 0 1px 0 rgba(255,255,255,.04)}
+.map-speed-val{font-family:var(--font-d);font-size:36px;font-weight:900;color:var(--white);line-height:1;letter-spacing:-.02em}
+.map-speed-unit{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--accent)}
+.map-stats-box{background:rgba(5,5,12,.88);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(16px)}
+.map-stat-row{display:flex;align-items:center;gap:10px}
+.map-stat-row .lbl{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);width:36px}
+.map-stat-row .val{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--white)}
+.map-controls{position:absolute;bottom:16px;right:12px;z-index:400;display:flex;flex-direction:column;gap:8px}
+.map-ctrl-btn{width:44px;height:44px;border-radius:10px;background:rgba(5,5,12,.9);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  color:var(--text-2);backdrop-filter:blur(16px);transition:all .2s}
+.map-ctrl-btn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.map-ctrl-btn svg{width:18px;height:18px}
+.leaflet-tile-pane{filter:brightness(.88) saturate(.6)}
+.leaflet-control-attribution,.leaflet-control-zoom{display:none!important}
+.apex-marker{width:18px;height:18px;background:var(--accent);border:2px solid #fff;
+  border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 14px var(--accent)}
 
-.speedo-wrap {
-  display: flex; justify-content: center; align-items: center;
-  padding: 8px 0 4px;
-  position: relative;
-}
-.speedo-wrap::before {
-  content: ''; position: absolute;
-  width: 280px; height: 280px; border-radius: 50%;
-  background: radial-gradient(circle at 50% 60%, rgba(255,61,0,0.06), transparent 70%);
-  pointer-events: none;
-}
-#speedo-canvas { position: relative; z-index: 1; }
+/* ════════════════════════════
+   LAPS SCREEN
+════════════════════════════ */
+#screen-laps{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px;display:flex;flex-direction:column;gap:14px}
+.lap-timer-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:24px 20px 20px;text-align:center;position:relative;overflow:hidden}
+.lap-timer-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,transparent,var(--accent),transparent);box-shadow:0 0 12px var(--accent-glow)}
+.lap-timer-label{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text-2);margin-bottom:8px}
+#lap-display{font-family:var(--font-d);font-size:52px;font-weight:900;color:var(--white);
+  letter-spacing:.05em;line-height:1;text-shadow:0 0 30px rgba(255,255,255,.08)}
+#lap-display.running{color:var(--green);text-shadow:0 0 30px rgba(0,230,118,.2)}
+.lap-sub{font-family:var(--font-d);font-size:14px;color:var(--text-2);letter-spacing:.08em;margin-top:8px}
+.lap-controls{display:flex;gap:10px;margin-top:20px}
+.lap-btn{flex:1;padding:14px;border-radius:10px;font-family:var(--font-ui);font-size:13px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);transition:all .15s}
+.lap-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 20px rgba(255,61,0,.3)}
+.lap-btn.primary:active{transform:scale(.97)}
+.lap-btn.secondary{background:var(--surface-3);color:var(--white);border-color:var(--border)}
+.lap-btn:disabled{opacity:.3;pointer-events:none}
+.laps-list-header{display:flex;justify-content:space-between;align-items:center;padding:0 2px}
+.laps-list-header span{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-2)}
+#laps-list{display:flex;flex-direction:column;gap:6px}
+.lap-row{display:flex;align-items:center;gap:12px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:12px 14px;animation:slide-in .3s ease}
+@keyframes slide-in{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.lap-row.best{border-color:var(--green);background:rgba(0,230,118,.05)}
+.lap-row.worst{border-color:rgba(255,61,0,.3)}
+.lap-num{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);width:36px}
+.lap-time{font-family:var(--font-d);font-size:18px;font-weight:700;color:var(--white);flex:1}
+.lap-row.best .lap-time{color:var(--green)}
+.lap-delta{font-family:var(--font-d);font-size:12px;font-weight:600;color:var(--text-2)}
+.lap-delta.fast{color:var(--green)}.lap-delta.slow{color:var(--accent)}
+.lap-badge{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px}
+.lap-badge.best{background:rgba(0,230,118,.15);color:var(--green)}
+.lap-badge.worst{background:rgba(255,61,0,.15);color:var(--accent)}
 
-/* ── Mini gauges row ── */
-.mini-gauges {
-  display: flex; gap: 10px; padding: 0 14px 10px;
-}
-.mini-card {
-  flex: 1; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px; display: flex; flex-direction: column;
-  align-items: center; gap: 6px; position: relative; overflow: hidden;
-}
-.mini-card::before {
-  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
-  background: linear-gradient(to right, transparent, var(--border), transparent);
-}
-.mini-card-label {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
-  color: var(--text-2);
-}
-#gforce-canvas, #heading-canvas { border-radius: 50%; }
+/* ════════════════════════════
+   DATA SCREEN
+════════════════════════════ */
+#screen-data{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+.data-section-title{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text-2);padding:6px 2px 2px;border-bottom:1px solid var(--border)}
+.sprint-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:18px;position:relative;overflow:hidden}
+.sprint-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,transparent,var(--cyan),transparent)}
+.sprint-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sprint-title{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-2)}
+.sprint-status{font-size:10px;font-weight:700;letter-spacing:.1em;padding:3px 10px;border-radius:3px;
+  text-transform:uppercase;background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--cyan)}
+.sprint-status.active{background:rgba(0,230,118,.1);color:var(--green);border-color:var(--green);animation:blink .8s infinite}
+.sprint-status.done{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.sprint-time-display{text-align:center;padding:16px 0}
+.sprint-time-val{font-family:var(--font-d);font-size:56px;font-weight:900;color:var(--white);line-height:1;letter-spacing:-.02em}
+.sprint-time-val.done{color:var(--cyan);text-shadow:0 0 30px var(--cyan-glow)}
+.sprint-time-unit{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--text-2);text-transform:uppercase;margin-top:6px}
+.sprint-track{height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin:4px 0 6px}
+.sprint-fill{height:100%;width:0%;border-radius:2px;background:linear-gradient(to right,var(--cyan),var(--accent));
+  transition:width .15s;box-shadow:0 0 8px var(--cyan-glow)}
+.sprint-milestones{display:flex;justify-content:space-between;margin-bottom:16px}
+.sprint-ms{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ms-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--text-3);transition:all .3s}
+.ms-dot.reached{border-color:var(--cyan);background:var(--cyan);box-shadow:0 0 8px var(--cyan-glow)}
+.ms-label{font-size:8px;font-weight:600;letter-spacing:.05em;color:var(--text-3)}
+.sprint-reset-btn{width:100%;padding:10px;border-radius:8px;font-family:var(--font-ui);font-size:12px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2)}
+.data-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.stat-rows{display:flex;flex-direction:column}
+.stat-row{display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-row-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;margin-right:14px;flex-shrink:0}
+.stat-row-icon svg{width:16px;height:16px}
+.r-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2)}
+.r-value{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--white);line-height:1.2}
+.g-bar-track{height:6px;background:var(--surface-3);border-radius:3px;overflow:hidden}
+.g-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.g-bar-fill.lat{background:linear-gradient(to right,var(--cyan),#0080ff)}
+.g-bar-fill.lon{background:linear-gradient(to right,var(--accent),#ff8800)}
 
-/* ── Stats strip ── */
-.stats-strip {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 8px; padding: 0 14px 10px;
-}
-.stat-cell {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 8px; text-align: center;
-  position: relative; overflow: hidden;
-}
-.stat-cell::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: var(--border);
-}
-.stat-cell.accent-cell::after { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-.stat-cell.cyan-cell::after { background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+/* ── PERM SCREEN ── */
+#perm-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;gap:20px}
+.perm-logo{font-family:var(--font-d);font-size:28px;font-weight:900;letter-spacing:.2em;margin-bottom:12px}
+.perm-logo span{color:var(--accent)}
+.perm-title{font-size:20px;font-weight:700;color:var(--white);margin-bottom:6px}
+.perm-desc{font-size:15px;color:var(--text-2);line-height:1.6;max-width:300px}
+.perm-btn{width:100%;max-width:280px;padding:16px;border-radius:12px;font-family:var(--font-ui);font-size:14px;
+  font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--accent);
+  color:#fff;box-shadow:0 0 30px rgba(255,61,0,.3);margin-top:8px}
+.perm-skip{font-size:12px;color:var(--text-2);margin-top:6px;text-decoration:underline;cursor:pointer}
 
-.stat-cell .stat-val {
-  font-family: var(--font-d); font-size: 15px; font-weight: 700;
-  color: var(--white); line-height: 1;
-  letter-spacing: -0.02em;
-}
-.stat-cell .stat-lbl {
-  font-size: 8px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--text-2); margin-top: 4px;
-}
-
-/* ── Unit toggle ── */
-.unit-toggle {
-  display: flex; justify-content: center; gap: 0; margin: 0 14px 8px;
-  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
-}
-.unit-btn {
-  flex: 1; padding: 7px; font-family: var(--font-ui); font-size: 11px;
-  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--text-2); background: var(--surface); transition: all 0.2s;
-  border-right: 1px solid var(--border);
-}
-.unit-btn:last-child { border-right: none; }
-.unit-btn.active { background: var(--accent); color: var(--white); }
-
-/* ═══════ ──────────────────── ═══════
-   SCREEN 2: MAP
-═══════ ──────────────────── ═══════ */
-#screen-map { position: relative; }
-#map-container {
-  position: absolute; inset: 0;
-}
-#map { width: 100%; height: 100%; }
-
-.map-overlay {
-  position: absolute; top: 12px; left: 12px; right: 12px;
-  z-index: 1000; pointer-events: none;
-  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
-}
-.map-speed-box {
-  background: rgba(5,5,12,0.85); border: 1px solid var(--accent);
-  border-radius: 10px; padding: 10px 16px; text-align: center;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0 20px rgba(255,61,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-.map-speed-val {
-  font-family: var(--font-d); font-size: 36px; font-weight: 900;
-  color: var(--white); line-height: 1; letter-spacing: -0.02em;
-}
-.map-speed-unit { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: var(--accent); }
-.map-stats-box {
-  background: rgba(5,5,12,0.85); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
-  backdrop-filter: blur(12px);
-}
-.map-stat-row { display: flex; align-items: center; gap: 10px; }
-.map-stat-row .lbl { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); width: 36px; }
-.map-stat-row .val { font-family: var(--font-d); font-size: 13px; font-weight: 700; color: var(--white); }
-
-.map-controls {
-  position: absolute; bottom: 16px; right: 12px;
-  z-index: 1000; display: flex; flex-direction: column; gap: 8px;
-}
-.map-ctrl-btn {
-  width: 42px; height: 42px; border-radius: 8px;
-  background: rgba(5,5,12,0.9); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-2); backdrop-filter: blur(12px);
-  transition: all 0.2s;
-}
-.map-ctrl-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-.map-ctrl-btn svg { width: 18px; height: 18px; }
-
-/* Leaflet dark overrides */
-.leaflet-tile-pane { filter: brightness(0.85) saturate(0.6); }
-.leaflet-control-attribution { display: none !important; }
-.leaflet-control-zoom { display: none !important; }
-
-/* Custom map marker */
-.apex-marker {
-  width: 20px; height: 20px;
-  background: var(--accent);
-  border: 2px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 0 12px var(--accent);
-}
-
-/* ═══════ ──────────────────── ═══════
-   SCREEN 3: LAPS
-═══════ ──────────────────── ═══════ */
-#screen-laps {
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 16px 14px; display: flex; flex-direction: column; gap: 14px;
-}
-
-.lap-timer-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 14px; padding: 24px 20px 20px;
-  text-align: center; position: relative; overflow: hidden;
-}
-.lap-timer-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(to right, transparent, var(--accent), transparent);
-  box-shadow: 0 0 12px var(--accent-glow);
-}
-.lap-timer-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
-  text-transform: uppercase; color: var(--text-2); margin-bottom: 8px;
-}
-#lap-display {
-  font-family: var(--font-d); font-size: 52px; font-weight: 900;
-  color: var(--white); letter-spacing: 0.05em; line-height: 1;
-  text-shadow: 0 0 30px rgba(255,255,255,0.1);
-}
-#lap-display.running { color: var(--green); text-shadow: 0 0 30px rgba(0,230,118,0.2); }
-.lap-sub {
-  font-family: var(--font-d); font-size: 14px; color: var(--text-2);
-  letter-spacing: 0.08em; margin-top: 8px;
-}
-
-.lap-controls {
-  display: flex; gap: 10px; margin-top: 20px;
-}
-.lap-btn {
-  flex: 1; padding: 14px; border-radius: 10px; font-family: var(--font-ui);
-  font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  border: 1px solid var(--border); background: var(--surface-2);
-  color: var(--text-2); transition: all 0.2s;
-}
-.lap-btn.primary {
-  background: var(--accent); border-color: var(--accent);
-  color: #fff; box-shadow: 0 0 20px rgba(255,61,0,0.3);
-}
-.lap-btn.primary:active { transform: scale(0.97); }
-.lap-btn.secondary { background: var(--surface-3); color: var(--white); border-color: var(--border); }
-.lap-btn:disabled { opacity: 0.3; pointer-events: none; }
-
-.laps-list-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0 2px;
-}
-.laps-list-header span {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
-  text-transform: uppercase; color: var(--text-2);
-}
-
-#laps-list { display: flex; flex-direction: column; gap: 6px; }
-.lap-row {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; padding: 12px 14px;
-  animation: slide-in 0.3s ease;
-}
-@keyframes slide-in { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
-.lap-row.best { border-color: var(--green); background: rgba(0,230,118,0.05); }
-.lap-row.worst { border-color: rgba(255,61,0,0.3); }
-.lap-num {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text-2); width: 36px;
-}
-.lap-time {
-  font-family: var(--font-d); font-size: 18px; font-weight: 700;
-  color: var(--white); flex: 1;
-}
-.lap-row.best .lap-time { color: var(--green); }
-.lap-delta {
-  font-family: var(--font-d); font-size: 12px; font-weight: 600;
-  color: var(--text-2);
-}
-.lap-delta.fast { color: var(--green); }
-.lap-delta.slow { color: var(--accent); }
-.lap-badge {
-  font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
-}
-.lap-badge.best { background: rgba(0,230,118,0.15); color: var(--green); }
-.lap-badge.worst { background: rgba(255,61,0,0.15); color: var(--accent); }
-
-/* ═══════ ──────────────────── ═══════
-   SCREEN 4: DATA / STATS
-═══════ ──────────────────── ═══════ */
-#screen-data {
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 16px 14px; display: flex; flex-direction: column; gap: 10px;
-}
-
-.data-section-title {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
-  text-transform: uppercase; color: var(--text-2);
-  padding: 6px 2px 2px; border-bottom: 1px solid var(--border);
-}
-
-.data-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; overflow: hidden;
-  position: relative;
-}
-.data-card-inner { padding: 16px 18px; }
-
-/* 0-60 card */
-.sprint-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px; position: relative; overflow: hidden;
-}
-.sprint-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(to right, transparent, var(--cyan), transparent);
-}
-.sprint-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 14px;
-}
-.sprint-title { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-2); }
-.sprint-status {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
-  padding: 3px 10px; border-radius: 3px;
-  text-transform: uppercase;
-  background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan);
-}
-.sprint-status.active { background: rgba(0,230,118,0.1); color: var(--green); border-color: var(--green); animation: blink 0.8s infinite; }
-@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-.sprint-status.done { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); animation: none; }
-
-.sprint-time-display {
-  text-align: center; padding: 16px 0;
-}
-.sprint-time-val {
-  font-family: var(--font-d); font-size: 56px; font-weight: 900;
-  color: var(--white); line-height: 1; letter-spacing: -0.02em;
-}
-.sprint-time-val.done { color: var(--cyan); text-shadow: 0 0 30px var(--cyan-glow); }
-.sprint-time-unit {
-  font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
-  color: var(--text-2); text-transform: uppercase; margin-top: 6px;
-}
-
-.sprint-progress-wrap { margin: 4px 0 16px; }
-.sprint-track {
-  height: 4px; background: var(--surface-3); border-radius: 2px; overflow: hidden;
-}
-.sprint-fill {
-  height: 100%; width: 0%; border-radius: 2px;
-  background: linear-gradient(to right, var(--cyan), var(--accent));
-  transition: width 0.15s ease;
-  box-shadow: 0 0 8px var(--cyan-glow);
-}
-
-.sprint-milestones {
-  display: flex; justify-content: space-between; margin-top: 6px;
-}
-.sprint-ms {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-}
-.sprint-ms .ms-dot {
-  width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text-3);
-  transition: all 0.3s;
-}
-.sprint-ms .ms-dot.reached { border-color: var(--cyan); background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
-.sprint-ms .ms-label {
-  font-size: 8px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-3);
-}
-
-.sprint-reset-btn {
-  width: 100%; padding: 10px; border-radius: 8px; font-family: var(--font-ui);
-  font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2);
-}
-
-/* Stat rows */
-.stat-rows { display: flex; flex-direction: column; }
-.stat-row {
-  display: flex; align-items: center; padding: 13px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.stat-row:last-child { border-bottom: none; }
-.stat-row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; }
-.stat-row-icon svg { width: 16px; height: 16px; }
-.stat-row-info { flex: 1; }
-.stat-row-info .r-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
-.stat-row-info .r-value { font-family: var(--font-d); font-size: 20px; font-weight: 700; color: var(--white); line-height: 1.2; }
-.stat-row-info .r-sub { font-size: 10px; color: var(--text-2); margin-top: 2px; }
-
-/* Peak G visual */
-.g-bar-wrap { margin-top: 8px; }
-.g-bar-track { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
-.g-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.g-bar-fill.lat { background: linear-gradient(to right, var(--cyan), #0080ff); }
-.g-bar-fill.lon { background: linear-gradient(to right, var(--accent), #ff8800); }
-
-/* Driving score */
-.score-ring-wrap { display: flex; justify-content: center; padding: 16px 0 8px; }
-.score-info { text-align: center; }
-.score-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-2); margin-bottom: 4px; }
-.score-grade { font-family: var(--font-d); font-size: 48px; font-weight: 900; color: var(--accent); }
-
-/* ═══════ PERMISSION SCREEN ═══════ */
-#perm-screen {
-  position: fixed; inset: 0; z-index: 9999;
-  background: var(--bg); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; padding: 40px 32px;
-  text-align: center; gap: 20px;
-}
-.perm-logo {
-  font-family: var(--font-d); font-size: 28px; font-weight: 900;
-  letter-spacing: 0.2em; margin-bottom: 12px;
-}
-.perm-logo span { color: var(--accent); }
-.perm-title { font-size: 20px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
-.perm-desc { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 300px; }
-.perm-btn {
-  width: 100%; max-width: 280px; padding: 16px;
-  border-radius: 12px; font-family: var(--font-ui); font-size: 14px;
-  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  background: var(--accent); color: #fff; border: none;
-  box-shadow: 0 0 30px rgba(255,61,0,0.3);
-  margin-top: 8px;
-}
-.perm-skip { font-size: 12px; color: var(--text-2); margin-top: 6px; text-decoration: underline; cursor: pointer; }
-
-/* ═══════ FLASH EFFECT ═══════ */
-#flash-overlay {
-  position: fixed; inset: 0; z-index: 9997; pointer-events: none;
-  background: rgba(255,61,0,0.15); opacity: 0;
-  transition: opacity 0.1s;
-}
-#flash-overlay.flash { opacity: 1; transition: none; }
-
-/* ═══════ TOP SPEED TOAST ═══════ */
-#toast {
-  position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-  z-index: 9996; pointer-events: none;
-  background: var(--surface); border: 1px solid var(--accent);
-  border-radius: 10px; padding: 10px 20px; text-align: center;
-  box-shadow: 0 0 20px var(--accent-dim);
-  opacity: 0; transition: opacity 0.3s, transform 0.3s;
-  transform: translateX(-50%) translateY(-10px);
-  min-width: 200px;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-#toast .toast-line1 { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
-#toast .toast-line2 { font-family: var(--font-d); font-size: 22px; font-weight: 900; color: var(--white); }
-
-/* Scrollbar hidden */
-::-webkit-scrollbar { display: none; }
-* { scrollbar-width: none; }
-
-/* Leaflet custom controls */
-.leaflet-control-attribution a { display: none; }
+/* ── FLASH / TOAST ── */
+#flash-overlay{position:fixed;inset:0;z-index:9997;pointer-events:none;background:rgba(255,61,0,.15);opacity:0}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);z-index:9996;pointer-events:none;
+  background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:10px 20px;text-align:center;
+  box-shadow:0 0 20px var(--accent-dim);opacity:0;transition:opacity .3s,transform .3s;min-width:200px}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast .toast-line1{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+#toast .toast-line2{font-family:var(--font-d);font-size:22px;font-weight:900;color:var(--white)}
+::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
 </style>
 </head>
 <body>
 
-<!-- Permission Screen -->
 <div id="perm-screen">
-  <div>
-    <div class="perm-logo">APEX<span>.</span></div>
-    <div class="perm-title">Racing Telemetry</div>
-  </div>
-  <div class="perm-desc">To track your performance, APEX needs access to your location and motion sensors.</div>
+  <div><div class="perm-logo">APEX<span>.</span></div><div class="perm-title">Racing Telemetry</div></div>
+  <div class="perm-desc">APEX needs location and motion sensor access for live telemetry.</div>
   <button class="perm-btn" id="perm-btn">Enable Sensors</button>
   <span class="perm-skip" id="perm-skip">Continue without sensors</span>
 </div>
 
-<!-- Flash overlay -->
 <div id="flash-overlay"></div>
+<div id="toast"><div class="toast-line1">🏆 New Top Speed</div><div class="toast-line2" id="toast-speed">—</div></div>
 
-<!-- Toast -->
-<div id="toast">
-  <div class="toast-line1">🏆 New Top Speed</div>
-  <div class="toast-line2" id="toast-speed">—</div>
+<div id="end-modal">
+  <div class="modal-box">
+    <div class="modal-title">End Drive?</div>
+    <div class="modal-sub">Session data will be preserved until you start a new drive.</div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeEndModal()">Cancel</button>
+      <button class="modal-btn danger" onclick="confirmEndDrive()">End Drive</button>
+    </div>
+  </div>
 </div>
 
-<!-- App -->
 <div id="app">
-  <!-- Header -->
   <div id="header">
     <div class="header-logo">
       <div class="logo-mark">
-        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 28 28" fill="none">
           <polygon points="14,2 26,24 2,24" fill="none" stroke="#FF3D00" stroke-width="2"/>
           <polygon points="14,8 21,22 7,22" fill="#FF3D00" opacity="0.4"/>
           <line x1="14" y1="2" x2="14" y2="24" stroke="#FF3D00" stroke-width="1.5" opacity="0.6"/>
@@ -633,21 +349,32 @@ body::before {
         <div class="gps-dot"></div>
         <span id="gps-label">NO GPS</span>
       </div>
+      <div class="drive-badge" id="drive-badge" style="display:none" onclick="openEndModal()">
+        <div class="rec-dot"></div><span>LIVE</span>
+      </div>
       <div class="header-clock" id="header-clock">--:--</div>
     </div>
   </div>
 
-  <!-- Screens -->
   <div id="screens">
 
-    <!-- GAUGE SCREEN -->
+    <!-- GAUGE -->
     <div class="screen active" id="screen-gauge">
-      <div class="speed-mode-badge">
-        <span id="mode-badge">STANDBY</span>
+      <div id="drive-overlay">
+        <div class="drive-overlay-logo">APE<span>X</span> TELEMETRY</div>
+        <div class="start-btn-outer">
+          <div class="start-btn-inner" onclick="startDrive()">
+            <div class="start-btn-label">START</div>
+            <div class="start-btn-sub">Begin Drive</div>
+          </div>
+        </div>
+        <div class="drive-overlay-status">
+          <span id="overlay-gps">Acquiring GPS…</span><br>
+          <span style="color:var(--text-3);font-size:10px">All data recorded on tap</span>
+        </div>
       </div>
-      <div class="speedo-wrap">
-        <canvas id="speedo-canvas"></canvas>
-      </div>
+      <div class="speed-mode-badge"><span id="mode-badge">STANDBY</span></div>
+      <div class="speedo-wrap"><canvas id="speedo-canvas"></canvas></div>
       <div class="mini-gauges">
         <div class="mini-card">
           <div class="mini-card-label">G-Force</div>
@@ -661,22 +388,10 @@ body::before {
         </div>
       </div>
       <div class="stats-strip">
-        <div class="stat-cell accent-cell">
-          <div class="stat-val" id="stat-top">0</div>
-          <div class="stat-lbl">Top</div>
-        </div>
-        <div class="stat-cell">
-          <div class="stat-val" id="stat-avg">0</div>
-          <div class="stat-lbl">Avg</div>
-        </div>
-        <div class="stat-cell cyan-cell">
-          <div class="stat-val" id="stat-dist">0.0</div>
-          <div class="stat-lbl">Dist</div>
-        </div>
-        <div class="stat-cell">
-          <div class="stat-val" id="stat-time">0:00</div>
-          <div class="stat-lbl">Time</div>
-        </div>
+        <div class="stat-cell accent-cell"><div class="stat-val" id="stat-top">0</div><div class="stat-lbl">Top</div></div>
+        <div class="stat-cell"><div class="stat-val" id="stat-avg">0</div><div class="stat-lbl">Avg</div></div>
+        <div class="stat-cell cyan-cell"><div class="stat-val" id="stat-dist">0.0</div><div class="stat-lbl">Dist</div></div>
+        <div class="stat-cell"><div class="stat-val" id="stat-time">0:00</div><div class="stat-lbl">Time</div></div>
       </div>
       <div class="unit-toggle">
         <button class="unit-btn active" id="btn-mph" onclick="setUnit('mph')">MPH</button>
@@ -684,46 +399,37 @@ body::before {
       </div>
     </div>
 
-    <!-- MAP SCREEN -->
+    <!-- MAP -->
     <div class="screen" id="screen-map">
-      <div id="map-container">
-        <div id="map"></div>
+      <div id="map-nodrive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M1 6l7-3 8 4 7-4v15l-7 4-8-4-7 3V6z"/><path d="M8 3v15M16 7v15"/>
+        </svg>
+        <p>Start a drive to see your route</p>
       </div>
+      <div id="map-container"><div id="map"></div></div>
       <div class="map-overlay">
         <div class="map-speed-box">
           <div class="map-speed-val" id="map-speed-val">0</div>
           <div class="map-speed-unit" id="map-speed-unit">MPH</div>
         </div>
         <div class="map-stats-box">
-          <div class="map-stat-row">
-            <span class="lbl">TOP</span>
-            <span class="val" id="map-top">0</span>
-          </div>
-          <div class="map-stat-row">
-            <span class="lbl">AVG</span>
-            <span class="val" id="map-avg">0</span>
-          </div>
-          <div class="map-stat-row">
-            <span class="lbl">DIST</span>
-            <span class="val" id="map-dist">0.0</span>
-          </div>
+          <div class="map-stat-row"><span class="lbl">TOP</span><span class="val" id="map-top">0</span></div>
+          <div class="map-stat-row"><span class="lbl">AVG</span><span class="val" id="map-avg">0</span></div>
+          <div class="map-stat-row"><span class="lbl">DIST</span><span class="val" id="map-dist">0.0</span></div>
         </div>
       </div>
       <div class="map-controls">
         <button class="map-ctrl-btn on" id="map-follow-btn" onclick="toggleFollow()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
         </button>
         <button class="map-ctrl-btn" onclick="clearTrail()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- LAPS SCREEN -->
+    <!-- LAPS -->
     <div class="screen" id="screen-laps">
       <div class="lap-timer-card">
         <div class="lap-timer-label">Lap Timer</div>
@@ -742,10 +448,8 @@ body::before {
       <div id="laps-list"></div>
     </div>
 
-    <!-- DATA SCREEN -->
+    <!-- DATA -->
     <div class="screen" id="screen-data">
-
-      <!-- 0-60 Card -->
       <div class="sprint-card">
         <div class="sprint-header">
           <span class="sprint-title">0 – 60 MPH Sprint</span>
@@ -755,1091 +459,750 @@ body::before {
           <div class="sprint-time-val" id="sprint-val">—</div>
           <div class="sprint-time-unit">seconds</div>
         </div>
-        <div class="sprint-progress-wrap">
-          <div class="sprint-track"><div class="sprint-fill" id="sprint-fill"></div></div>
-          <div class="sprint-milestones">
-            <div class="sprint-ms"><div class="ms-dot" id="ms-0"></div><div class="ms-label">0</div></div>
-            <div class="sprint-ms"><div class="ms-dot" id="ms-30"></div><div class="ms-label">30</div></div>
-            <div class="sprint-ms"><div class="ms-dot" id="ms-45"></div><div class="ms-label">45</div></div>
-            <div class="sprint-ms"><div class="ms-dot" id="ms-60"></div><div class="ms-label">60</div></div>
-          </div>
+        <div class="sprint-track"><div class="sprint-fill" id="sprint-fill"></div></div>
+        <div class="sprint-milestones">
+          <div class="sprint-ms"><div class="ms-dot" id="ms-0"></div><div class="ms-label">0</div></div>
+          <div class="sprint-ms"><div class="ms-dot" id="ms-30"></div><div class="ms-label">30</div></div>
+          <div class="sprint-ms"><div class="ms-dot" id="ms-45"></div><div class="ms-label">45</div></div>
+          <div class="sprint-ms"><div class="ms-dot" id="ms-60"></div><div class="ms-label">60</div></div>
         </div>
         <button class="sprint-reset-btn" onclick="resetSprint()">Reset 0–60</button>
       </div>
 
-      <!-- Session Stats -->
       <div class="data-section-title">Session Performance</div>
       <div class="data-card">
         <div class="stat-rows">
           <div class="stat-row">
-            <div class="stat-row-icon" style="background:rgba(255,61,0,0.12)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF3D00" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-              </svg>
+            <div class="stat-row-icon" style="background:rgba(255,61,0,.12)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF3D00" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             </div>
-            <div class="stat-row-info">
-              <div class="r-label">Top Speed</div>
-              <div class="r-value" id="data-top">— <span style="font-size:14px;color:var(--text-2)" id="data-top-unit">MPH</span></div>
-            </div>
+            <div><div class="r-label">Top Speed</div><div class="r-value" id="data-top">—</div></div>
           </div>
           <div class="stat-row">
-            <div class="stat-row-icon" style="background:rgba(0,207,255,0.1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#00CFFF" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
+            <div class="stat-row-icon" style="background:rgba(0,207,255,.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00CFFF" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
-            <div class="stat-row-info">
-              <div class="r-label">Avg Speed (moving)</div>
-              <div class="r-value" id="data-avg">— <span style="font-size:14px;color:var(--text-2)" id="data-avg-unit">MPH</span></div>
-            </div>
+            <div><div class="r-label">Avg Speed (moving)</div><div class="r-value" id="data-avg">—</div></div>
           </div>
           <div class="stat-row">
-            <div class="stat-row-icon" style="background:rgba(255,184,0,0.1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="2">
-                <path d="M3 12h18M12 3v18"/>
-              </svg>
+            <div class="stat-row-icon" style="background:rgba(255,184,0,.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="2"><path d="M3 12h18M12 3v18"/></svg>
             </div>
-            <div class="stat-row-info">
-              <div class="r-label">Total Distance</div>
-              <div class="r-value" id="data-dist">— <span style="font-size:14px;color:var(--text-2)" id="data-dist-unit">MI</span></div>
-            </div>
+            <div><div class="r-label">Total Distance</div><div class="r-value" id="data-dist">—</div></div>
           </div>
           <div class="stat-row">
-            <div class="stat-row-icon" style="background:rgba(0,230,118,0.1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-              </svg>
+            <div class="stat-row-icon" style="background:rgba(0,230,118,.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             </div>
-            <div class="stat-row-info">
-              <div class="r-label">Session Duration</div>
-              <div class="r-value" id="data-duration">—</div>
-            </div>
+            <div><div class="r-label">Session Duration</div><div class="r-value" id="data-duration">—</div></div>
           </div>
         </div>
       </div>
 
-      <!-- G-Force Stats -->
       <div class="data-section-title">G-Force Analysis</div>
       <div class="data-card">
-        <div class="data-card-inner">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="padding:16px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
             <div>
-              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-2)">Peak Lateral G</div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2)">Peak Lateral G</div>
               <div style="font-family:var(--font-d);font-size:24px;font-weight:900;color:var(--cyan)" id="peak-lat-g">0.00G</div>
             </div>
             <div style="text-align:right">
-              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-2)">Peak Long. G</div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2)">Peak Long. G</div>
               <div style="font-family:var(--font-d);font-size:24px;font-weight:900;color:var(--accent)" id="peak-lon-g">0.00G</div>
             </div>
           </div>
-          <div class="g-bar-wrap">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span style="font-size:9px;color:var(--text-2);letter-spacing:0.08em;text-transform:uppercase">Lateral</span>
-              <span style="font-size:9px;color:var(--cyan)" id="lat-pct">0%</span>
-            </div>
-            <div class="g-bar-track"><div class="g-bar-fill lat" id="lat-bar" style="width:0%"></div></div>
+          <div style="font-size:9px;font-weight:600;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between">
+            <span>Lateral</span><span style="color:var(--cyan)" id="lat-pct">0%</span>
           </div>
-          <div class="g-bar-wrap" style="margin-top:10px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span style="font-size:9px;color:var(--text-2);letter-spacing:0.08em;text-transform:uppercase">Longitudinal</span>
-              <span style="font-size:9px;color:var(--accent)" id="lon-pct">0%</span>
-            </div>
-            <div class="g-bar-track"><div class="g-bar-fill lon" id="lon-bar" style="width:0%"></div></div>
+          <div class="g-bar-track" style="margin-bottom:12px"><div class="g-bar-fill lat" id="lat-bar" style="width:0%"></div></div>
+          <div style="font-size:9px;font-weight:600;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between">
+            <span>Longitudinal</span><span style="color:var(--accent)" id="lon-pct">0%</span>
           </div>
+          <div class="g-bar-track"><div class="g-bar-fill lon" id="lon-bar" style="width:0%"></div></div>
         </div>
       </div>
-
       <div style="height:20px"></div>
     </div>
 
-  </div><!-- /screens -->
+  </div>
 
-  <!-- Nav Bar -->
   <nav id="nav">
     <button class="nav-btn active" id="nav-gauge" onclick="switchScreen('gauge')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M12 12L7.5 7.5"/>
-        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-        <path d="M5 12H3M21 12h-2M12 3v2M12 19v2"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 12L7.5 7.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M5 12H3M21 12h-2M12 3v2M12 19v2"/></svg>
       <span>Gauge</span>
     </button>
     <button class="nav-btn" id="nav-map" onclick="switchScreen('map')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <path d="M1 6l7-3 8 4 7-4v15l-7 4-8-4-7 3V6z"/>
-        <path d="M8 3v15M16 7v15"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 6l7-3 8 4 7-4v15l-7 4-8-4-7 3V6z"/><path d="M8 3v15M16 7v15"/></svg>
       <span>Map</span>
     </button>
     <button class="nav-btn" id="nav-laps" onclick="switchScreen('laps')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-        <path d="M4.93 4.93l.02.02"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span>Laps</span>
     </button>
     <button class="nav-btn" id="nav-data" onclick="switchScreen('data')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-        <rect x="14" y="14" width="7" height="7"/>
-        <path d="M3 14h7v7H3z" opacity="0.4" stroke-dasharray="2 2"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h7v7H3z" opacity=".4" stroke-dasharray="2 2"/></svg>
       <span>Data</span>
     </button>
   </nav>
-</div><!-- /app -->
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 'use strict';
 
-/* ════════════════════════════════════
+/* ═══════════════════════════════════
    STATE
-════════════════════════════════════ */
+═══════════════════════════════════ */
 const S = {
   unit: 'mph',
-  speed: 0,
-  displaySpeed: 0,
+  speed: 0,        // converted speed for display
+  displaySpeed: 0, // smoothed
   heading: 0,
-  accuracy: null,
   gpsActive: false,
+  driveActive: false,
+  sessionStart: null,
+  rawPos: null,    // latest GPS fix (used even before drive starts, for map init)
   trailPoints: [],
-  gForce: { x: 0, y: 0, mag: 0 },
-  gTrail: [],
-  peakLat: 0,
-  peakLon: 0,
+  lastPos: null,
   topSpeed: 0,
   totalDist: 0,
   speedSamples: [],
-  sessionStart: null,
-  lastPos: null,
-  // Sprint
-  sprint: { state: 'armed', startTime: 0, endTime: 0, startSpeed: 0 },
-  // Laps
-  lap: { running: false, startTime: 0, elapsed: 0, lastLap: 0, laps: [], lapStart: 0 },
+  // G-force — orientation-independent via gravity low-pass filter
+  // gravity vector estimate in phone frame (all 3 axes)
+  gravX: 0, gravY: 0, gravZ: -9.81,
+  // linear acceleration in phone frame (gravity removed)
+  linX: 0, linY: 0, linZ: 0,
+  // rotated into vehicle frame
+  gLat: 0,   // lateral (left-right)
+  gLon: 0,   // longitudinal (forward-back)
+  gMag: 0,   // total magnitude
+  gTrail: [],
+  peakLat: 0,
+  peakLon: 0,
+  sprint: { state: 'armed', startTime: 0 },
+  lap: { running: false, startTime: 0, lapStart: 0, laps: [] },
   currentScreen: 'gauge',
   mapFollow: true,
-  permDone: false,
 };
 
-let rafId = null;
-let map = null;
-let mapTrail = null;
-let mapMarker = null;
-let mapInitialized = false;
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
+const G = 9.81;
+const LP = 0.85; // low-pass alpha for gravity isolation
 
-const DPR = window.devicePixelRatio || 1;
-
-/* ════════════════════════════════════
-   CONVERSION
-════════════════════════════════════ */
-const MPS_TO_MPH = 2.23694;
-const MPS_TO_KPH = 3.6;
-const M_TO_MI = 0.000621371;
-const M_TO_KM = 0.001;
-
-function speedConvert(mps) {
-  return S.unit === 'mph' ? mps * MPS_TO_MPH : mps * MPS_TO_KPH;
-}
-function distConvert(m) {
-  return S.unit === 'mph' ? m * M_TO_MI : m * M_TO_KM;
-}
-function unitLabel() { return S.unit.toUpperCase(); }
-function distLabel() { return S.unit === 'mph' ? 'MI' : 'KM'; }
+/* ═══════════════════════════════════
+   UNITS
+═══════════════════════════════════ */
+const toDisplay = mps => S.unit === 'mph' ? mps * 2.23694 : mps * 3.6;
+const toDist    = m   => S.unit === 'mph' ? m * 0.000621371 : m * 0.001;
+const unitLbl   = ()  => S.unit.toUpperCase();
+const distLbl   = ()  => S.unit === 'mph' ? 'MI' : 'KM';
 
 function setUnit(u) {
   S.unit = u;
-  document.getElementById('btn-mph').classList.toggle('active', u === 'mph');
-  document.getElementById('btn-kph').classList.toggle('active', u === 'kph');
-  document.getElementById('map-speed-unit').textContent = unitLabel();
-  document.getElementById('data-top-unit').textContent = unitLabel();
-  document.getElementById('data-avg-unit').textContent = unitLabel();
-  document.getElementById('data-dist-unit').textContent = distLabel();
+  document.getElementById('btn-mph').classList.toggle('active', u==='mph');
+  document.getElementById('btn-kph').classList.toggle('active', u==='kph');
+  document.getElementById('map-speed-unit').textContent = unitLbl();
 }
 
-/* ════════════════════════════════════
-   CANVAS SETUP
-════════════════════════════════════ */
-function makeCanvas(id, w, h) {
-  const c = document.getElementById(id);
-  c.width = w * DPR;
-  c.height = h * DPR;
-  c.style.width = w + 'px';
-  c.style.height = h + 'px';
-  const ctx = c.getContext('2d');
-  ctx.scale(DPR, DPR);
-  return { canvas: c, ctx, W: w, H: h };
-}
-
-let speedoCtx, speedoW, speedoH;
-let gforceCtx, gforceW, gforceH;
-let headingCtx, headingW, headingH;
+/* ═══════════════════════════════════
+   CANVAS
+═══════════════════════════════════ */
+let spCtx,spW,spH, gCtx,gW,gH, hCtx,hW,hH;
 
 function initCanvases() {
-  const vw = Math.min(window.innerWidth, 420);
-  const sd = Math.min(vw - 24, 300);
-  const { canvas, ctx, W, H } = makeCanvas('speedo-canvas', sd, sd);
-  speedoCtx = ctx; speedoW = W; speedoH = H;
-
-  const gd = 110;
-  const g = makeCanvas('gforce-canvas', gd, gd);
-  gforceCtx = g.ctx; gforceW = g.W; gforceH = g.H;
-
-  const hd = 110;
-  const h = makeCanvas('heading-canvas', hd, hd);
-  headingCtx = h.ctx; headingW = h.W; headingH = h.H;
+  const vw = Math.min(window.innerWidth, 440);
+  const sd = Math.min(vw - 24, 310);
+  ({ctx:spCtx,W:spW,H:spH} = mkCanvas('speedo-canvas', sd, sd));
+  ({ctx:gCtx, W:gW, H:gH}  = mkCanvas('gforce-canvas', 110, 110));
+  ({ctx:hCtx, W:hW, H:hH}  = mkCanvas('heading-canvas', 110, 110));
 }
 
-/* ════════════════════════════════════
-   DRAW SPEEDOMETER
-════════════════════════════════════ */
-const MAX_SPEED_MPH = 220;
-const MAX_SPEED_KPH = 350;
+function mkCanvas(id, w, h) {
+  const c = document.getElementById(id);
+  c.width = w*DPR; c.height = h*DPR;
+  c.style.width = w+'px'; c.style.height = h+'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return {ctx, W:w, H:h};
+}
 
-function drawSpeedometer(speed) {
-  const ctx = speedoCtx;
-  const W = speedoW, H = speedoH;
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(W, H) / 2 * 0.86;
-  const maxSpeed = S.unit === 'mph' ? MAX_SPEED_MPH : MAX_SPEED_KPH;
+/* ═══════════════════════════════════
+   DRAW: SPEEDOMETER
+═══════════════════════════════════ */
+function drawSpeedo(spd) {
+  const ctx=spCtx, W=spW, H=spH, cx=W/2, cy=H/2;
+  const R = Math.min(W,H)/2 * 0.86;
+  const maxSpd = S.unit==='mph' ? 220 : 350;
+  const sA = 135*Math.PI/180, arc = 270*Math.PI/180;
+  const fr = Math.max(0, Math.min(spd/maxSpd, 1));
 
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0,0,W,H);
 
-  const startA = 135 * Math.PI / 180;
-  const totalArc = 270 * Math.PI / 180;
-  const fraction = Math.max(0, Math.min(speed / maxSpeed, 1));
+  // Track
+  ctx.beginPath(); ctx.arc(cx,cy,R,sA,sA+arc);
+  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=14; ctx.lineCap='round'; ctx.stroke();
 
-  // ─ Outer decorative ring ─
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 8, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // ─ Track arc ─
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, startA, startA + totalArc);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 14;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // ─ Speed zone arc ─
-  const zones = [
-    { start: 0, end: 0.36, c: '#00E676' },
-    { start: 0.36, end: 0.64, c: '#FFB800' },
-    { start: 0.64, end: 0.82, c: '#FF6D00' },
-    { start: 0.82, end: 1.00, c: '#FF1744' },
-  ];
-
-  zones.forEach(z => {
-    const s = z.start;
-    const e = Math.min(fraction, z.end);
-    if (e <= s) return;
-    const aS = startA + s * totalArc;
-    const aE = startA + e * totalArc;
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, aS, aE);
-    ctx.strokeStyle = z.c;
-    ctx.lineWidth = 14;
-    ctx.lineCap = 'butt';
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = z.c;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+  // Colored zones up to current speed
+  [{s:0,e:.36,c:'#00E676'},{s:.36,e:.64,c:'#FFB800'},{s:.64,e:.82,c:'#FF6D00'},{s:.82,e:1,c:'#FF1744'}]
+  .forEach(z => {
+    const e2=Math.min(fr,z.e); if(e2<=z.s) return;
+    ctx.beginPath(); ctx.arc(cx,cy,R,sA+z.s*arc,sA+e2*arc);
+    ctx.strokeStyle=z.c; ctx.lineWidth=14; ctx.lineCap='butt';
+    ctx.shadowBlur=20; ctx.shadowColor=z.c; ctx.stroke(); ctx.shadowBlur=0;
   });
 
-  // ─ Tick marks ─
-  const step = S.unit === 'mph' ? 10 : 20;
-  const major = S.unit === 'mph' ? 20 : 50;
-  for (let s = 0; s <= maxSpeed; s += step) {
-    const frac = s / maxSpeed;
-    const angle = startA + frac * totalArc;
-    const isMajor = s % major === 0;
-    const oR = R * 0.95;
-    const iR = isMajor ? R * 0.72 : R * 0.82;
-    const cos = Math.cos(angle), sin = Math.sin(angle);
+  // Tick marks + labels
+  const step=S.unit==='mph'?10:20, major=S.unit==='mph'?20:50;
+  for(let s=0;s<=maxSpd;s+=step){
+    const a=sA+(s/maxSpd)*arc, isMaj=s%major===0;
+    const o=R*.95, i=isMaj?R*.72:R*.83;
     ctx.beginPath();
-    ctx.moveTo(cx + cos * oR, cy + sin * oR);
-    ctx.lineTo(cx + cos * iR, cy + sin * iR);
-    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = isMajor ? 2.5 : 1;
-    ctx.lineCap = 'round';
-    ctx.shadowBlur = 0;
-    ctx.stroke();
-
-    if (isMajor) {
-      const lR = R * 0.62;
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.font = `600 ${R * 0.095}px 'Barlow Condensed', sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(s, cx + Math.cos(angle) * lR, cy + Math.sin(angle) * lR);
+    ctx.moveTo(cx+Math.cos(a)*o,cy+Math.sin(a)*o);
+    ctx.lineTo(cx+Math.cos(a)*i,cy+Math.sin(a)*i);
+    ctx.strokeStyle=isMaj?'rgba(255,255,255,.78)':'rgba(255,255,255,.2)';
+    ctx.lineWidth=isMaj?2.5:1; ctx.lineCap='round'; ctx.shadowBlur=0; ctx.stroke();
+    if(isMaj){
+      ctx.fillStyle='rgba(255,255,255,.65)';
+      ctx.font=`600 ${R*.093}px 'Barlow Condensed'`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(s,cx+Math.cos(a)*R*.60,cy+Math.sin(a)*R*.60);
     }
   }
 
-  // ─ Needle glow halo ─
-  const needleA = startA + fraction * totalArc;
-  const nlLen = R * 0.78;
-  const gx = cx + Math.cos(needleA) * nlLen;
-  const gy = cy + Math.sin(needleA) * nlLen;
-  const glowGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, R * 0.3);
-  glowGrad.addColorStop(0, 'rgba(255,61,0,0.18)');
-  glowGrad.addColorStop(1, 'rgba(255,61,0,0)');
-  ctx.fillStyle = glowGrad;
-  ctx.fillRect(0, 0, W, H);
+  // Needle glow
+  const na=sA+fr*arc;
+  const gx=cx+Math.cos(na)*R*.78, gy=cy+Math.sin(na)*R*.78;
+  const halo=ctx.createRadialGradient(gx,gy,0,gx,gy,R*.28);
+  halo.addColorStop(0,'rgba(255,61,0,.18)'); halo.addColorStop(1,'transparent');
+  ctx.fillStyle=halo; ctx.fillRect(0,0,W,H);
 
-  // ─ Needle ─
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(needleA);
-  const nLen = R * 0.78;
-  const nBack = R * 0.16;
-
-  ctx.shadowBlur = 22;
-  ctx.shadowColor = '#FF5500';
-  const ng = ctx.createLinearGradient(-nBack, 0, nLen, 0);
-  ng.addColorStop(0, 'rgba(255,255,255,0.3)');
-  ng.addColorStop(0.65, '#FF4500');
-  ng.addColorStop(1, '#FF8800');
-
+  // Needle
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(na);
+  const nL=R*.78, nB=R*.16;
+  ctx.shadowBlur=22; ctx.shadowColor='#FF5500';
+  const ng=ctx.createLinearGradient(-nB,0,nL,0);
+  ng.addColorStop(0,'rgba(255,255,255,.28)'); ng.addColorStop(.65,'#FF4500'); ng.addColorStop(1,'#FF8800');
   ctx.beginPath();
-  ctx.moveTo(-nBack, 2.5);
-  ctx.lineTo(-nBack, -2.5);
-  ctx.lineTo(nLen * 0.68, -2.8);
-  ctx.lineTo(nLen, 0);
-  ctx.lineTo(nLen * 0.68, 2.8);
-  ctx.closePath();
-  ctx.fillStyle = ng;
-  ctx.fill();
-  ctx.restore();
-  ctx.shadowBlur = 0;
+  ctx.moveTo(-nB,2.5); ctx.lineTo(-nB,-2.5);
+  ctx.lineTo(nL*.68,-2.8); ctx.lineTo(nL,0); ctx.lineTo(nL*.68,2.8);
+  ctx.closePath(); ctx.fillStyle=ng; ctx.fill();
+  ctx.restore(); ctx.shadowBlur=0;
 
-  // ─ Center hub ─
-  const hubR = R * 0.10;
-  const hg = ctx.createRadialGradient(cx, cy, 0, cx, cy, hubR);
-  hg.addColorStop(0, '#FF8800');
-  hg.addColorStop(0.5, '#CC3300');
-  hg.addColorStop(1, '#110000');
-  ctx.beginPath();
-  ctx.arc(cx, cy, hubR, 0, Math.PI * 2);
-  ctx.fillStyle = hg;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx, cy, hubR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  // Hub
+  const hr=R*.10;
+  const hg=ctx.createRadialGradient(cx,cy,0,cx,cy,hr);
+  hg.addColorStop(0,'#FF8800'); hg.addColorStop(.5,'#CC3300'); hg.addColorStop(1,'#110000');
+  ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fillStyle=hg; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1.5; ctx.stroke();
 
-  // ─ Digital speed ─
-  const displayVal = Math.round(speed);
-  const fontSize = R * 0.38;
-  ctx.font = `900 ${fontSize}px 'Orbitron', monospace`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.shadowBlur = 16;
-  ctx.shadowColor = 'rgba(255,200,100,0.4)';
-  ctx.fillText(displayVal, cx, cy + R * 0.20);
-  ctx.shadowBlur = 0;
-
-  // Unit label below
-  ctx.font = `600 ${R * 0.09}px 'Barlow Condensed', sans-serif`;
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText(unitLabel(), cx, cy + R * 0.37);
+  // Digital speed
+  ctx.font=`900 ${R*.38}px 'Orbitron'`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#FFF'; ctx.shadowBlur=16; ctx.shadowColor='rgba(255,200,100,.32)';
+  ctx.fillText(Math.round(spd),cx,cy+R*.20); ctx.shadowBlur=0;
+  ctx.font=`600 ${R*.09}px 'Barlow Condensed'`;
+  ctx.fillStyle='rgba(255,255,255,.32)';
+  ctx.fillText(unitLbl(),cx,cy+R*.37);
 }
 
-/* ════════════════════════════════════
-   DRAW G-FORCE
-════════════════════════════════════ */
+/* ═══════════════════════════════════
+   DRAW: G-FORCE DISPLAY
+═══════════════════════════════════ */
 function drawGForce(ax, ay) {
-  const ctx = gforceCtx;
-  const W = gforceW, H = gforceH;
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(W, H) / 2 * 0.88;
-  const MAX_G = 2.0;
-  const scale = R / MAX_G;
+  const ctx=gCtx, W=gW, H=gH, cx=W/2, cy=H/2;
+  const R=Math.min(W,H)/2*.88, MAX=1.5, sc=R/MAX;
 
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.arc(cx,cy,R+4,0,Math.PI*2); ctx.fillStyle='#07071A'; ctx.fill();
 
-  // Background
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#07071A';
-  ctx.fill();
-
-  // Grid rings
-  [0.5, 1.0, 1.5, 2.0].forEach((g, i) => {
-    const r = g * scale;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = i === 1 ? 'rgba(0,207,255,0.25)' : 'rgba(255,255,255,0.07)';
-    ctx.lineWidth = i === 1 ? 1.5 : 1;
-    ctx.stroke();
-    if (i === 1) {
-      ctx.fillStyle = 'rgba(0,207,255,0.4)';
-      ctx.font = `600 ${R * 0.12}px 'Barlow Condensed'`;
-      ctx.textAlign = 'right';
-      ctx.fillText('1G', cx + r - 3, cy - 3);
-    }
+  [.5,1,1.5].forEach((g2,i) => {
+    ctx.beginPath(); ctx.arc(cx,cy,g2*sc,0,Math.PI*2);
+    ctx.strokeStyle=i===1?'rgba(0,207,255,.28)':'rgba(255,255,255,.07)';
+    ctx.lineWidth=i===1?1.5:1; ctx.stroke();
+    if(i===1){ ctx.fillStyle='rgba(0,207,255,.42)'; ctx.font=`600 ${R*.12}px 'Barlow Condensed'`; ctx.textAlign='right'; ctx.fillText('1G',cx+g2*sc-3,cy-3); }
   });
 
-  // Cross lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.07)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke();
 
-  // Labels
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.font = `700 ${R * 0.11}px 'Barlow Condensed'`;
-  ctx.textAlign = 'center';
-  ctx.fillText('ACCEL', cx, cy - R * 0.75);
-  ctx.fillText('BRAKE', cx, cy + R * 0.83);
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.font=`700 ${R*.1}px 'Barlow Condensed'`; ctx.textAlign='center';
+  ctx.fillText('ACCEL',cx,cy-R*.73);
+  ctx.fillText('BRAKE',cx,cy+R*.81);
 
-  // Trail
-  S.gTrail.forEach((pt, i) => {
-    const alpha = (i / S.gTrail.length) * 0.6;
-    const px = cx + pt.x * scale;
-    const py = cy - pt.y * scale;
-    ctx.beginPath();
-    ctx.arc(px, py, 2, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,100,0,${alpha})`;
-    ctx.fill();
+  S.gTrail.forEach((pt,i) => {
+    const a=(i/S.gTrail.length)*.5;
+    ctx.beginPath(); ctx.arc(cx+pt.x*sc,cy-pt.y*sc,2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,100,0,${a})`; ctx.fill();
   });
 
-  // Live dot
-  const mag = Math.sqrt(ax * ax + ay * ay);
-  const dotX = cx + ax * scale;
-  const dotY = cy - ay * scale;
-  const t = Math.min(mag / MAX_G, 1);
-  const r = Math.round(255 * t), g2 = Math.round(230 * (1 - t));
-  const dotColor = `rgb(${r},${g2},0)`;
+  const t=Math.min(S.gMag/MAX,1);
+  const dc=`rgb(${Math.round(255*t)},${Math.round(210*(1-t))},0)`;
+  ctx.beginPath(); ctx.arc(cx+ax*sc,cy-ay*sc,6,0,Math.PI*2);
+  ctx.fillStyle=dc; ctx.shadowBlur=14; ctx.shadowColor=dc; ctx.fill(); ctx.shadowBlur=0;
 
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 6, 0, Math.PI * 2);
-  ctx.fillStyle = dotColor;
-  ctx.shadowBlur = 14;
-  ctx.shadowColor = dotColor;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Border ring
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R+2,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1; ctx.stroke();
 }
 
-/* ════════════════════════════════════
-   DRAW HEADING/COMPASS
-════════════════════════════════════ */
-function drawHeading(heading) {
-  const ctx = headingCtx;
-  const W = headingW, H = headingH;
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(W, H) / 2 * 0.88;
+/* ═══════════════════════════════════
+   DRAW: COMPASS
+═══════════════════════════════════ */
+function drawHeading(hdg) {
+  const ctx=hCtx, W=hW, H=hH, cx=W/2, cy=H/2, R=Math.min(W,H)/2*.88;
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.arc(cx,cy,R+4,0,Math.PI*2); ctx.fillStyle='#07071A'; ctx.fill();
 
-  ctx.clearRect(0, 0, W, H);
-
-  // Background circle
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#07071A';
-  ctx.fill();
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(-heading * Math.PI / 180);
-
-  // Outer tick ring
-  for (let d = 0; d < 360; d += 5) {
-    const a = d * Math.PI / 180;
-    const isMajor = d % 45 === 0;
-    const isMid = d % 15 === 0;
-    const oR = R * 0.96;
-    const iR = isMajor ? R * 0.76 : (isMid ? R * 0.84 : R * 0.90);
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * oR, Math.sin(a) * oR);
-    ctx.lineTo(Math.cos(a) * iR, Math.sin(a) * iR);
-    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = isMajor ? 2 : 1;
-    ctx.stroke();
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-hdg*Math.PI/180);
+  for(let d=0;d<360;d+=5){
+    const a=d*Math.PI/180, isMaj=d%45===0, isMid=d%15===0;
+    const o=R*.96, i=isMaj?R*.76:isMid?R*.84:R*.90;
+    ctx.beginPath(); ctx.moveTo(Math.cos(a)*o,Math.sin(a)*o); ctx.lineTo(Math.cos(a)*i,Math.sin(a)*i);
+    ctx.strokeStyle=isMaj?'rgba(255,255,255,.6)':'rgba(255,255,255,.13)';
+    ctx.lineWidth=isMaj?2:1; ctx.stroke();
   }
-
-  // Cardinal labels
-  const cardinals = ['N', 'E', 'S', 'W'];
-  const cardAngles = [0, 90, 180, 270];
-  cardAngles.forEach((deg, i) => {
-    const a = deg * Math.PI / 180;
-    const lr = R * 0.64;
-    ctx.fillStyle = i === 0 ? '#FF3D00' : 'rgba(255,255,255,0.55)';
-    ctx.font = `700 ${R * 0.14}px 'Barlow Condensed'`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(cardinals[i], Math.cos(a) * lr, Math.sin(a) * lr);
+  ['N','E','S','W'].forEach((c,i)=>{
+    const a=i*90*Math.PI/180;
+    ctx.fillStyle=i===0?'#FF3D00':'rgba(255,255,255,.5)';
+    ctx.font=`700 ${R*.14}px 'Barlow Condensed'`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(c,Math.cos(a)*R*.63,Math.sin(a)*R*.63);
   });
-
   ctx.restore();
 
-  // Fixed north pointer triangle (always points up = current heading direction)
-  ctx.save();
-  ctx.translate(cx, cy);
-  // Triangle pointing up (north direction = current heading shown at top)
-  ctx.beginPath();
-  ctx.moveTo(0, -R * 0.5);
-  ctx.lineTo(R * 0.08, -R * 0.22);
-  ctx.lineTo(-R * 0.08, -R * 0.22);
-  ctx.closePath();
-  ctx.fillStyle = '#FF3D00';
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = 'rgba(255,61,0,0.6)';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(0, R * 0.5);
-  ctx.lineTo(R * 0.08, R * 0.22);
-  ctx.lineTo(-R * 0.08, R * 0.22);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.shadowBlur = 0;
-  ctx.fill();
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 0.07, 0, Math.PI * 2);
-  ctx.fillStyle = '#fff';
-  ctx.shadowBlur = 8;
-  ctx.shadowColor = '#fff';
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.beginPath(); ctx.moveTo(0,-R*.5); ctx.lineTo(R*.08,-R*.22); ctx.lineTo(-R*.08,-R*.22); ctx.closePath();
+  ctx.fillStyle='#FF3D00'; ctx.shadowBlur=10; ctx.shadowColor='rgba(255,61,0,.6)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,R*.5); ctx.lineTo(R*.08,R*.22); ctx.lineTo(-R*.08,R*.22); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,.22)'; ctx.shadowBlur=0; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,R*.07,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.shadowBlur=8; ctx.shadowColor='#fff'; ctx.fill(); ctx.shadowBlur=0;
   ctx.restore();
 
-  // Border
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R+2,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1; ctx.stroke();
 }
 
-/* ════════════════════════════════════
-   GPS
-════════════════════════════════════ */
-let gpsWatchId = null;
+/* ═══════════════════════════════════
+   MOTION — orientation-independent G
 
+   We keep a running estimate of the gravity
+   vector using a low-pass filter across all
+   three axes. Subtracting it gives linear
+   acceleration regardless of phone orientation
+   (portrait/landscape/flat/angled).
+
+   We then project the horizontal component of
+   that linear acceleration onto the vehicle's
+   forward/lateral axes using GPS heading.
+═══════════════════════════════════ */
+function startMotion() {
+  window.addEventListener('devicemotion', e => {
+    const r = e.accelerationIncludingGravity;
+    if (!r) return;
+
+    const rx = r.x || 0, ry = r.y || 0, rz = r.z || 0;
+
+    // Low-pass filter → tracks gravity vector (slow-changing)
+    S.gravX = LP*S.gravX + (1-LP)*rx;
+    S.gravY = LP*S.gravY + (1-LP)*ry;
+    S.gravZ = LP*S.gravZ + (1-LP)*rz;
+
+    // High-pass result = linear acceleration (fast-changing, gravity removed)
+    S.linX = rx - S.gravX;
+    S.linY = ry - S.gravY;
+    S.linZ = rz - S.gravZ;
+
+    // Convert to G
+    const lx=S.linX/G, ly=S.linY/G, lz=S.linZ/G;
+
+    // Total magnitude (all axes)
+    S.gMag = Math.sqrt(lx*lx + ly*ly + lz*lz);
+
+    // ── Project onto vehicle axes using GPS heading ──
+    // Phone's horizontal plane: X = right, Y = up (toward top of screen)
+    // Vehicle forward unit vector in phone XY plane:
+    //   pointing toward top of screen when aligned with travel direction
+    const hr = (S.heading || 0) * Math.PI / 180;
+    const fwdX =  Math.sin(hr);
+    const fwdY =  Math.cos(hr);
+
+    // Longitudinal G = projection onto forward direction
+    S.gLon =  lx*fwdX + ly*fwdY;
+    // Lateral G = projection onto right direction (perpendicular, clockwise 90°)
+    S.gLat = -lx*fwdY + ly*fwdX;
+
+    // Record peaks only during active drive
+    if (S.driveActive) {
+      if (Math.abs(S.gLat) > S.peakLat) S.peakLat = Math.abs(S.gLat);
+      if (Math.abs(S.gLon) > S.peakLon) S.peakLon = Math.abs(S.gLon);
+      S.gTrail.push({x: S.gLat, y: S.gLon});
+      if (S.gTrail.length > 50) S.gTrail.shift();
+    }
+  }, {passive:true});
+}
+
+/* ═══════════════════════════════════
+   GPS
+═══════════════════════════════════ */
 function startGPS() {
   if (!navigator.geolocation) return;
-  gpsWatchId = navigator.geolocation.watchPosition(
-    onGPSSuccess,
-    onGPSError,
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-  );
+  navigator.geolocation.watchPosition(onPos, ()=>{}, {
+    enableHighAccuracy: true, maximumAge: 0, timeout: 15000
+  });
 }
 
-function onGPSSuccess(pos) {
-  const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+function onPos(pos) {
+  const {latitude:lat, longitude:lng, speed, heading, accuracy} = pos.coords;
+  S.rawPos = {lat, lng, accuracy};
+  const mps = (speed !== null && speed >= 0) ? speed : 0;
+  S.speed = toDisplay(mps);
+  if (heading !== null) S.heading = heading;
 
-  if (!S.sessionStart) S.sessionStart = Date.now();
-
-  const speedMps = speed !== null && speed >= 0 ? speed : 0;
-  S.speed = speedConvert(speedMps);
-  S.accuracy = accuracy;
-  S.heading = heading !== null ? heading : S.heading;
-
-  // GPS badge
-  const badge = document.getElementById('gps-badge');
-  const label = document.getElementById('gps-label');
+  // GPS badge — always update
   if (!S.gpsActive) {
     S.gpsActive = true;
-    badge.classList.add('active');
+    document.getElementById('gps-badge').classList.add('active');
+    document.getElementById('overlay-gps').textContent = 'GPS Ready ✓';
+    document.getElementById('overlay-gps').classList.add('ok');
   }
-  const accStr = accuracy !== null ? Math.round(accuracy) + 'm' : 'GPS';
-  label.textContent = accStr;
+  document.getElementById('gps-label').textContent = accuracy ? Math.round(accuracy)+'m' : 'GPS';
 
-  // Top speed
+  // Only record session data when drive is active
+  if (!S.driveActive) return;
+
   if (S.speed > S.topSpeed) {
     const prev = S.topSpeed;
     S.topSpeed = S.speed;
-    if (prev > 5) showTopSpeedToast();
+    if (prev > 5) showToast();
   }
 
-  // Distance
   if (S.lastPos) {
-    const dist = haversine(S.lastPos.lat, S.lastPos.lng, latitude, longitude);
-    if (dist < 200) { // ignore GPS jumps > 200m
-      S.totalDist += dist;
-    }
+    const d = haversine(S.lastPos.lat, S.lastPos.lng, lat, lng);
+    if (d < 300) S.totalDist += d;
   }
-  S.lastPos = { lat: latitude, lng: longitude };
+  S.lastPos = {lat, lng};
 
-  // Speed samples for avg
-  if (speedMps > 0.5) {
+  if (mps > 0.5) {
     S.speedSamples.push(S.speed);
-    if (S.speedSamples.length > 500) S.speedSamples.shift();
+    if (S.speedSamples.length > 1000) S.speedSamples.shift();
   }
 
-  // Trail
-  S.trailPoints.push({ lat: latitude, lng: longitude, speed: S.speed });
-  if (S.trailPoints.length > 2000) S.trailPoints.shift();
+  S.trailPoints.push({lat, lng, spd: S.speed});
+  if (S.trailPoints.length > 3000) S.trailPoints.shift();
 
-  // Update map
-  updateMap(latitude, longitude, S.speed);
-
-  // Sprint 0-60
   handleSprint(S.speed);
+  updateMapTrail(lat, lng);
 }
 
-function onGPSError(e) {
-  // keep quiet but show no GPS
+function haversine(la1,lo1,la2,lo2) {
+  const Rm=6371000, dLa=(la2-la1)*Math.PI/180, dLo=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return Rm*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+/* ═══════════════════════════════════
+   DRIVE LIFECYCLE
+═══════════════════════════════════ */
+function startDrive() {
+  S.driveActive = true;
+  S.sessionStart = Date.now();
+  S.lastPos = S.rawPos ? {lat:S.rawPos.lat, lng:S.rawPos.lng} : null;
+  S.topSpeed=0; S.totalDist=0; S.speedSamples=[];
+  S.peakLat=0; S.peakLon=0; S.gTrail=[];
+  S.trailPoints=[]; resetSprint();
+
+  document.getElementById('drive-overlay').classList.add('hidden');
+  document.getElementById('drive-badge').style.display = 'flex';
+  document.getElementById('map-nodrive').style.display = 'none';
+
+  initMap();
 }
 
-/* ════════════════════════════════════
-   ACCELEROMETER
-════════════════════════════════════ */
-function startMotion() {
-  window.addEventListener('devicemotion', onMotion, { passive: true });
+function openEndModal() { document.getElementById('end-modal').classList.add('show'); }
+function closeEndModal() { document.getElementById('end-modal').classList.remove('show'); }
+function confirmEndDrive() {
+  S.driveActive = false;
+  closeEndModal();
+  document.getElementById('drive-badge').style.display = 'none';
+  document.getElementById('drive-overlay').classList.remove('hidden');
+  const gpsEl = document.getElementById('overlay-gps');
+  gpsEl.textContent = S.gpsActive ? 'GPS Ready ✓' : 'Acquiring GPS…';
+  if (S.gpsActive) gpsEl.classList.add('ok');
 }
 
-function onMotion(e) {
-  const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
-  const G = 9.81;
-  const ax = (acc.x || 0) / G;
-  const ay = (acc.y || 0) / G;
-  S.gForce.x = ax;
-  S.gForce.y = ay;
-  S.gForce.mag = Math.sqrt(ax*ax + ay*ay);
-
-  if (Math.abs(ax) > S.peakLat) S.peakLat = Math.abs(ax);
-  if (Math.abs(ay) > S.peakLon) S.peakLon = Math.abs(ay);
-
-  S.gTrail.push({ x: ax, y: ay });
-  if (S.gTrail.length > 40) S.gTrail.shift();
-}
-
-/* ════════════════════════════════════
+/* ═══════════════════════════════════
    MAP
-════════════════════════════════════ */
-function initMap() {
-  if (mapInitialized) return;
-  mapInitialized = true;
+═══════════════════════════════════ */
+let map=null, mapPolyline=null, mapMarker=null, mapReady=false, mapTs=0;
 
-  map = L.map('map', {
-    zoomControl: false,
-    attributionControl: false,
-  }).setView([51.505, -0.09], 15);
+function initMap() {
+  if (mapReady) return;
+  mapReady = true;
+  const lat = S.rawPos ? S.rawPos.lat : 51.505;
+  const lng = S.rawPos ? S.rawPos.lng : -0.09;
+
+  map = L.map('map', {zoomControl:false, attributionControl:false}).setView([lat,lng], 16);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
+    maxZoom:19, subdomains:'abcd'
   }).addTo(map);
 
-  mapTrail = L.polyline([], { color: '#FF3D00', weight: 4, opacity: 0.9 }).addTo(map);
+  mapPolyline = L.polyline([], {color:'#FF3D00', weight:5, opacity:.9}).addTo(map);
 
-  const markerIcon = L.divIcon({
-    className: '',
-    html: '<div class="apex-marker"></div>',
-    iconSize: [20, 20],
-    iconAnchor: [10, 20],
-  });
-  mapMarker = L.marker([51.505, -0.09], { icon: markerIcon }).addTo(map);
+  mapMarker = L.marker([lat,lng], {
+    icon: L.divIcon({className:'', html:'<div class="apex-marker"></div>', iconSize:[18,18], iconAnchor:[9,18]})
+  }).addTo(map);
+
+  // Critical: force Leaflet to recalculate its container size
+  setTimeout(() => { if(map) map.invalidateSize(); }, 100);
+  setTimeout(() => { if(map) map.invalidateSize(); }, 400);
 }
 
-let mapUpdateTimer = 0;
-function updateMap(lat, lng, speed) {
-  if (!mapInitialized) return;
-  const now = Date.now();
-  if (now - mapUpdateTimer < 500) return;
-  mapUpdateTimer = now;
-
-  // Add to trail with speed color
-  const pts = S.trailPoints.slice(-500).map(p => [p.lat, p.lng]);
-  mapTrail.setLatLngs(pts);
-
-  // Color based on speed
-  const t = Math.min(speed / (S.unit === 'mph' ? 80 : 130), 1);
-  const r = Math.round(255 * t);
-  const g = Math.round(230 * (1 - t * 0.5));
-  mapTrail.setStyle({ color: `rgb(${r},${g},0)` });
-
-  mapMarker.setLatLng([lat, lng]);
-  if (S.mapFollow) {
-    map.setView([lat, lng], map.getZoom(), { animate: true, duration: 0.5 });
-  }
+function updateMapTrail(lat, lng) {
+  if (!mapReady) return;
+  const now = Date.now(); if (now-mapTs < 500) return; mapTs=now;
+  const pts = S.trailPoints.slice(-600).map(p=>[p.lat,p.lng]);
+  mapPolyline.setLatLngs(pts);
+  const t=Math.min(S.speed/(S.unit==='mph'?80:130),1);
+  mapPolyline.setStyle({color:`rgb(${Math.round(255*Math.max(t,.28))},${Math.round(200*(1-t))},0)`});
+  mapMarker.setLatLng([lat,lng]);
+  if (S.mapFollow) map.setView([lat,lng],map.getZoom(),{animate:true,duration:.5});
 }
 
 function toggleFollow() {
-  S.mapFollow = !S.mapFollow;
-  const btn = document.getElementById('map-follow-btn');
-  btn.classList.toggle('on', S.mapFollow);
+  S.mapFollow=!S.mapFollow;
+  document.getElementById('map-follow-btn').classList.toggle('on',S.mapFollow);
 }
+function clearTrail() { S.trailPoints=[]; if(mapPolyline) mapPolyline.setLatLngs([]); }
 
-function clearTrail() {
-  S.trailPoints = [];
-  S.totalDist = 0;
-  if (mapTrail) mapTrail.setLatLngs([]);
-}
-
-/* ════════════════════════════════════
+/* ═══════════════════════════════════
    SPRINT 0–60
-════════════════════════════════════ */
-function handleSprint(speed) {
-  const target = S.unit === 'mph' ? 60 : 96;
-  const threshold = S.unit === 'mph' ? 3 : 5;
-
-  if (S.sprint.state === 'armed') {
-    if (speed >= threshold) {
-      S.sprint.state = 'running';
-      S.sprint.startTime = Date.now();
-      S.sprint.startSpeed = speed;
-      updateSprintUI('running', 0);
-    }
-  } else if (S.sprint.state === 'running') {
-    const elapsed = (Date.now() - S.sprint.startTime) / 1000;
-    const prog = Math.min(speed / target, 1);
-    updateSprintUI('running', prog);
-    updateSprintMilestones(speed);
-
-    if (speed >= target) {
-      S.sprint.state = 'done';
-      S.sprint.endTime = Date.now();
-      const time = ((S.sprint.endTime - S.sprint.startTime) / 1000).toFixed(2);
-      document.getElementById('sprint-val').textContent = time;
-      document.getElementById('sprint-val').classList.add('done');
-      document.getElementById('sprint-status').textContent = 'COMPLETE';
-      document.getElementById('sprint-status').className = 'sprint-status done';
-      document.getElementById('sprint-fill').style.width = '100%';
-      updateSprintMilestones(target);
+═══════════════════════════════════ */
+function handleSprint(spd) {
+  if(!S.driveActive) return;
+  const target=S.unit==='mph'?60:96, thr=S.unit==='mph'?3:5;
+  const sp=S.sprint;
+  if(sp.state==='armed' && spd>=thr) {
+    sp.state='running'; sp.startTime=Date.now();
+    eid('sprint-status').textContent='RUNNING'; eid('sprint-status').className='sprint-status active';
+  } else if(sp.state==='running') {
+    const el=(Date.now()-sp.startTime)/1000;
+    eid('sprint-val').textContent=el.toFixed(2);
+    eid('sprint-fill').style.width=Math.min(spd/target,1)*100+'%';
+    updateMilestones(spd);
+    if(spd>=target){
+      sp.state='done';
+      eid('sprint-val').textContent=el.toFixed(2); eid('sprint-val').classList.add('done');
+      eid('sprint-status').textContent='DONE'; eid('sprint-status').className='sprint-status done';
+      eid('sprint-fill').style.width='100%'; updateMilestones(target);
     }
   }
 }
-
-function updateSprintUI(state, prog) {
-  if (state === 'running') {
-    const elapsed = ((Date.now() - S.sprint.startTime) / 1000).toFixed(2);
-    document.getElementById('sprint-val').textContent = elapsed;
-    document.getElementById('sprint-status').textContent = 'RUNNING';
-    document.getElementById('sprint-status').className = 'sprint-status active';
-    document.getElementById('sprint-fill').style.width = (prog * 100) + '%';
-  }
+function updateMilestones(s){
+  const t=S.unit==='mph'?60:96,m30=S.unit==='mph'?30:50,m45=S.unit==='mph'?45:72;
+  if(s>=1)   eid('ms-0').classList.add('reached');
+  if(s>=m30) eid('ms-30').classList.add('reached');
+  if(s>=m45) eid('ms-45').classList.add('reached');
+  if(s>=t)   eid('ms-60').classList.add('reached');
+}
+function resetSprint(){
+  S.sprint={state:'armed',startTime:0};
+  eid('sprint-val').textContent='—'; eid('sprint-val').classList.remove('done');
+  eid('sprint-status').textContent='ARMED'; eid('sprint-status').className='sprint-status';
+  eid('sprint-fill').style.width='0%';
+  ['ms-0','ms-30','ms-45','ms-60'].forEach(id=>eid(id).classList.remove('reached'));
 }
 
-function updateSprintMilestones(speed) {
-  const target = S.unit === 'mph' ? 60 : 96;
-  const ms30 = S.unit === 'mph' ? 30 : 50;
-  const ms45 = S.unit === 'mph' ? 45 : 72;
-  if (speed >= 1) document.getElementById('ms-0').classList.add('reached');
-  if (speed >= ms30) document.getElementById('ms-30').classList.add('reached');
-  if (speed >= ms45) document.getElementById('ms-45').classList.add('reached');
-  if (speed >= target) document.getElementById('ms-60').classList.add('reached');
-}
-
-function resetSprint() {
-  S.sprint = { state: 'armed', startTime: 0, endTime: 0, startSpeed: 0 };
-  document.getElementById('sprint-val').textContent = '—';
-  document.getElementById('sprint-val').classList.remove('done');
-  document.getElementById('sprint-status').textContent = 'ARMED';
-  document.getElementById('sprint-status').className = 'sprint-status';
-  document.getElementById('sprint-fill').style.width = '0%';
-  ['ms-0','ms-30','ms-45','ms-60'].forEach(id => document.getElementById(id).classList.remove('reached'));
-}
-
-/* ════════════════════════════════════
+/* ═══════════════════════════════════
    LAP TIMER
-════════════════════════════════════ */
-let lapRafId = null;
-
-function lapStartStop() {
-  const btn = document.getElementById('lap-start-btn');
-  const disp = document.getElementById('lap-display');
-
-  if (!S.lap.running) {
-    S.lap.running = true;
-    S.lap.startTime = performance.now();
-    S.lap.lapStart = S.lap.startTime;
-    btn.textContent = 'STOP';
-    btn.style.background = '#E53935';
-    document.getElementById('lap-split-btn').disabled = false;
-    document.getElementById('lap-reset-btn').disabled = false;
+═══════════════════════════════════ */
+let lapRaf=null;
+function lapStartStop(){
+  const btn=eid('lap-start-btn'), disp=eid('lap-display');
+  if(!S.lap.running){
+    S.lap={...S.lap, running:true, startTime:performance.now(), lapStart:performance.now()};
+    btn.textContent='STOP'; btn.style.background='#E53935';
+    eid('lap-split-btn').disabled=false; eid('lap-reset-btn').disabled=false;
     disp.classList.add('running');
-    document.getElementById('lap-sub').textContent = `Lap ${S.lap.laps.length + 1}`;
-    lapRafId = requestAnimationFrame(tickLap);
+    eid('lap-sub').textContent=`Lap ${S.lap.laps.length+1}`;
+    lapRaf=requestAnimationFrame(tickLap);
   } else {
-    S.lap.running = false;
-    cancelAnimationFrame(lapRafId);
-    disp.classList.remove('running');
-    btn.textContent = 'START';
-    btn.style.background = '';
-    const elapsed = performance.now() - S.lap.lapStart;
-    if (elapsed > 500) {
-      pushLap(elapsed);
-    }
-    document.getElementById('lap-sub').textContent = '— Stopped —';
+    S.lap.running=false; cancelAnimationFrame(lapRaf);
+    disp.classList.remove('running'); btn.textContent='START'; btn.style.background='';
+    const el=performance.now()-S.lap.lapStart;
+    if(el>500) pushLap(el);
+    eid('lap-sub').textContent='— Stopped —';
   }
 }
-
-function tickLap() {
-  if (!S.lap.running) return;
-  const now = performance.now();
-  const total = now - S.lap.startTime;
-  const currentLap = now - S.lap.lapStart;
-  document.getElementById('lap-display').textContent = formatLapTime(currentLap);
-  document.getElementById('lap-sub').textContent = `Total: ${formatLapTime(total)}`;
-  lapRafId = requestAnimationFrame(tickLap);
+function tickLap(){
+  if(!S.lap.running) return;
+  const now=performance.now();
+  eid('lap-display').textContent=fmtLap(now-S.lap.lapStart);
+  eid('lap-sub').textContent=`Total: ${fmtLap(now-S.lap.startTime)}`;
+  lapRaf=requestAnimationFrame(tickLap);
 }
-
-function lapSplit() {
-  if (!S.lap.running) return;
-  const now = performance.now();
-  const elapsed = now - S.lap.lapStart;
-  pushLap(elapsed);
-  S.lap.lapStart = now;
+function lapSplit(){
+  if(!S.lap.running) return;
+  const now=performance.now();
+  pushLap(now-S.lap.lapStart); S.lap.lapStart=now;
 }
-
-function lapReset() {
-  S.lap.running = false;
-  cancelAnimationFrame(lapRafId);
-  S.lap = { running: false, startTime: 0, elapsed: 0, lastLap: 0, laps: [], lapStart: 0 };
-  document.getElementById('lap-display').textContent = '00:00.000';
-  document.getElementById('lap-display').classList.remove('running');
-  document.getElementById('lap-sub').textContent = '— Press START to begin —';
-  document.getElementById('lap-start-btn').textContent = 'START';
-  document.getElementById('lap-start-btn').style.background = '';
-  document.getElementById('lap-split-btn').disabled = true;
-  document.getElementById('lap-reset-btn').disabled = true;
-  document.getElementById('laps-list').innerHTML = '';
-  document.getElementById('lap-count-label').textContent = 'No laps recorded';
-  document.getElementById('best-lap-label').textContent = '';
+function lapReset(){
+  S.lap.running=false; cancelAnimationFrame(lapRaf);
+  S.lap={running:false,startTime:0,lapStart:0,laps:[]};
+  eid('lap-display').textContent='00:00.000'; eid('lap-display').classList.remove('running');
+  eid('lap-sub').textContent='— Press START to begin —';
+  eid('lap-start-btn').textContent='START'; eid('lap-start-btn').style.background='';
+  eid('lap-split-btn').disabled=true; eid('lap-reset-btn').disabled=true;
+  eid('laps-list').innerHTML='';
+  eid('lap-count-label').textContent='No laps recorded'; eid('best-lap-label').textContent='';
 }
-
-function pushLap(ms) {
-  S.lap.laps.push(ms);
-  renderLaps();
-}
-
-function renderLaps() {
-  const laps = S.lap.laps;
-  const list = document.getElementById('laps-list');
-  const best = Math.min(...laps);
-  const worst = Math.max(...laps);
-  list.innerHTML = '';
-  const reversed = [...laps].reverse();
-  reversed.forEach((t, ri) => {
-    const i = laps.length - 1 - ri;
-    const row = document.createElement('div');
-    row.className = 'lap-row' + (t === best && laps.length > 1 ? ' best' : '') + (t === worst && laps.length > 1 ? ' worst' : '');
-    const delta = i > 0 ? t - best : null;
-    const deltaStr = delta !== null ? (delta >= 0 ? '+' : '') + (delta/1000).toFixed(3) : '';
-    row.innerHTML = `
-      <div class="lap-num">LAP ${i+1}</div>
-      <div class="lap-time">${formatLapTime(t)}</div>
-      ${delta !== null ? `<div class="lap-delta ${delta <= 0 ? 'fast' : 'slow'}">${deltaStr}</div>` : ''}
-      ${t === best && laps.length > 1 ? '<span class="lap-badge best">BEST</span>' : ''}
-      ${t === worst && laps.length > 1 ? '<span class="lap-badge worst">SLOW</span>' : ''}
-    `;
+function pushLap(ms){ S.lap.laps.push(ms); renderLaps(); }
+function renderLaps(){
+  const laps=S.lap.laps, list=eid('laps-list');
+  const best=Math.min(...laps), worst=Math.max(...laps);
+  list.innerHTML='';
+  [...laps].reverse().forEach((t,ri)=>{
+    const i=laps.length-1-ri, isBest=t===best&&laps.length>1, isWorst=t===worst&&laps.length>1;
+    const delta=i>0?t-best:null;
+    const row=document.createElement('div');
+    row.className='lap-row'+(isBest?' best':'')+(isWorst?' worst':'');
+    row.innerHTML=`<div class="lap-num">LAP ${i+1}</div>
+      <div class="lap-time">${fmtLap(t)}</div>
+      ${delta!==null?`<div class="lap-delta ${delta<=0?'fast':'slow'}">${delta>=0?'+':''}${(delta/1000).toFixed(3)}</div>`:''}
+      ${isBest?'<span class="lap-badge best">BEST</span>':''}${isWorst?'<span class="lap-badge worst">SLOW</span>':''}`;
     list.appendChild(row);
   });
-  document.getElementById('lap-count-label').textContent = `${laps.length} lap${laps.length !== 1 ? 's' : ''}`;
-  if (laps.length > 1) {
-    document.getElementById('best-lap-label').textContent = `Best: ${formatLapTime(best)}`;
-  }
+  eid('lap-count-label').textContent=`${laps.length} lap${laps.length!==1?'s':''}`;
+  if(laps.length>1) eid('best-lap-label').textContent=`Best: ${fmtLap(best)}`;
 }
-
-function formatLapTime(ms) {
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  const ms2 = Math.floor(ms % 1000);
+function fmtLap(ms){
+  const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),ms2=Math.floor(ms%1000);
   return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms2.toString().padStart(3,'0')}`;
 }
 
-/* ════════════════════════════════════
-   MAIN RENDER LOOP
-════════════════════════════════════ */
-function render() {
-  const now = Date.now();
+/* ═══════════════════════════════════
+   RENDER LOOP
+═══════════════════════════════════ */
+let lastMode='';
+function render(){
+  // Smooth speed display
+  S.displaySpeed += (S.speed - S.displaySpeed) * 0.22;
 
-  // Smooth speed interpolation
-  const target = S.speed;
-  S.displaySpeed += (target - S.displaySpeed) * 0.25;
-
-  // Draw speedometer
-  if (S.currentScreen === 'gauge') {
-    drawSpeedometer(S.displaySpeed);
-    drawGForce(S.gForce.x, S.gForce.y);
+  // Always draw speedo (even before drive — shows 0 behind overlay)
+  drawSpeedo(S.displaySpeed);
+  if(S.currentScreen==='gauge'){
+    drawGForce(S.gLat, S.gLon);
     drawHeading(S.heading);
   }
 
-  // Update stats
-  const dist = distConvert(S.totalDist);
-  const avgSpeed = S.speedSamples.length > 0
-    ? S.speedSamples.reduce((a, b) => a + b, 0) / S.speedSamples.length
-    : 0;
+  const dist=toDist(S.totalDist);
+  const avg=S.speedSamples.length>0 ? S.speedSamples.reduce((a,b)=>a+b)/S.speedSamples.length : 0;
 
-  // Gauge screen stats
-  document.getElementById('stat-top').textContent = Math.round(S.topSpeed);
-  document.getElementById('stat-avg').textContent = Math.round(avgSpeed);
-  document.getElementById('stat-dist').textContent = dist.toFixed(1);
-  if (S.sessionStart) {
-    const elapsed = now - S.sessionStart;
-    document.getElementById('stat-time').textContent = formatSessionTime(elapsed);
-  }
+  // Gauge stats
+  eid('stat-top').textContent=Math.round(S.topSpeed);
+  eid('stat-avg').textContent=Math.round(avg);
+  eid('stat-dist').textContent=dist.toFixed(1);
+  eid('stat-time').textContent=(S.sessionStart&&S.driveActive)?fmtSess(Date.now()-S.sessionStart):'0:00';
 
-  // G readout
-  document.getElementById('g-readout').textContent = S.gForce.mag.toFixed(2) + 'G';
-  document.getElementById('heading-readout').textContent =
-    S.heading !== null ? Math.round(S.heading) + '°' : '---°';
+  // G readouts
+  eid('g-readout').textContent=S.gMag.toFixed(2)+'G';
+  eid('heading-readout').textContent=Math.round(S.heading)+'°';
 
-  // Speed mode badge
-  updateModeBadge(S.displaySpeed);
+  // Mode badge
+  let mode='',cls='';
+  if(!S.driveActive||S.displaySpeed<5){mode='STANDBY';}
+  else if(S.displaySpeed<(S.unit==='mph'?30:48)){mode='URBAN';}
+  else if(S.displaySpeed<(S.unit==='mph'?70:113)){mode='ROAD';cls='mode-road';}
+  else if(S.displaySpeed<(S.unit==='mph'?100:161)){mode='HIGHWAY';cls='mode-highway';}
+  else{mode='TRACK MODE';cls='mode-track';}
+  if(mode!==lastMode){lastMode=mode;eid('mode-badge').textContent=mode;eid('mode-badge').className=cls;if(cls==='mode-track')flash();}
 
   // Map overlay
-  document.getElementById('map-speed-val').textContent = Math.round(S.displaySpeed);
-  document.getElementById('map-top').textContent = Math.round(S.topSpeed);
-  document.getElementById('map-avg').textContent = Math.round(avgSpeed);
-  document.getElementById('map-dist').textContent = dist.toFixed(1);
+  eid('map-speed-val').textContent=Math.round(S.displaySpeed);
+  eid('map-top').textContent=Math.round(S.topSpeed);
+  eid('map-avg').textContent=Math.round(avg);
+  eid('map-dist').textContent=dist.toFixed(1);
 
   // Data screen
-  document.getElementById('data-top').innerHTML = Math.round(S.topSpeed) + ` <span style="font-size:14px;color:var(--text-2)">${unitLabel()}</span>`;
-  document.getElementById('data-avg').innerHTML = Math.round(avgSpeed) + ` <span style="font-size:14px;color:var(--text-2)">${unitLabel()}</span>`;
-  document.getElementById('data-dist').innerHTML = dist.toFixed(2) + ` <span style="font-size:14px;color:var(--text-2)">${distLabel()}</span>`;
-  if (S.sessionStart) {
-    document.getElementById('data-duration').textContent = formatSessionTime(now - S.sessionStart);
-  }
+  const u=unitLbl(), d=distLbl();
+  eid('data-top').textContent=S.topSpeed>0 ? Math.round(S.topSpeed)+' '+u : '—';
+  eid('data-avg').textContent=avg>0 ? Math.round(avg)+' '+u : '—';
+  eid('data-dist').textContent=S.totalDist>0 ? dist.toFixed(2)+' '+d : '—';
+  eid('data-duration').textContent=S.sessionStart ? fmtSess(Date.now()-S.sessionStart) : '—';
 
-  // Peak G bars
-  const latPct = Math.min(S.peakLat / 2.5, 1) * 100;
-  const lonPct = Math.min(S.peakLon / 2.5, 1) * 100;
-  document.getElementById('peak-lat-g').textContent = S.peakLat.toFixed(2) + 'G';
-  document.getElementById('peak-lon-g').textContent = S.peakLon.toFixed(2) + 'G';
-  document.getElementById('lat-bar').style.width = latPct + '%';
-  document.getElementById('lon-bar').style.width = lonPct + '%';
-  document.getElementById('lat-pct').textContent = Math.round(latPct) + '%';
-  document.getElementById('lon-pct').textContent = Math.round(lonPct) + '%';
+  const lp=Math.min(S.peakLat/2.5,1)*100, lnp=Math.min(S.peakLon/2.5,1)*100;
+  eid('peak-lat-g').textContent=S.peakLat.toFixed(2)+'G';
+  eid('peak-lon-g').textContent=S.peakLon.toFixed(2)+'G';
+  eid('lat-bar').style.width=lp+'%'; eid('lat-pct').textContent=Math.round(lp)+'%';
+  eid('lon-bar').style.width=lnp+'%'; eid('lon-pct').textContent=Math.round(lnp)+'%';
 
   // Clock
-  const t = new Date();
-  document.getElementById('header-clock').textContent =
-    t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+  const now=new Date();
+  eid('header-clock').textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
 
-  rafId = requestAnimationFrame(render);
+  requestAnimationFrame(render);
 }
 
-function formatSessionTime(ms) {
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+function fmtSess(ms){return `${Math.floor(ms/60000)}:${Math.floor((ms%60000)/1000).toString().padStart(2,'0')}`;}
+function eid(id){return document.getElementById(id);}
+function flash(){
+  const el=eid('flash-overlay');
+  el.style.transition='none'; el.style.opacity='1';
+  setTimeout(()=>{el.style.transition='opacity 1.2s';el.style.opacity='0';},80);
+}
+function showToast(){
+  eid('toast-speed').textContent=Math.round(S.topSpeed)+' '+unitLbl();
+  eid('toast').classList.add('show');
+  setTimeout(()=>eid('toast').classList.remove('show'),2800);
 }
 
-let lastMode = '';
-function updateModeBadge(speed) {
-  let mode, cls;
-  if (speed < 5) { mode = 'STANDBY'; cls = ''; }
-  else if (speed < (S.unit === 'mph' ? 30 : 48)) { mode = 'URBAN'; cls = ''; }
-  else if (speed < (S.unit === 'mph' ? 70 : 113)) { mode = 'ROAD'; cls = 'mode-road'; }
-  else if (speed < (S.unit === 'mph' ? 100 : 161)) { mode = 'HIGHWAY'; cls = 'mode-highway'; }
-  else { mode = 'TRACK MODE'; cls = 'mode-track'; }
-
-  if (mode !== lastMode) {
-    lastMode = mode;
-    const badge = document.getElementById('mode-badge');
-    badge.textContent = mode;
-    badge.className = cls;
-    if (cls === 'mode-track') triggerFlash();
-  }
+/* ═══════════════════════════════════
+   NAV
+═══════════════════════════════════ */
+function switchScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  eid('screen-'+name).classList.add('active');
+  eid('nav-'+name).classList.add('active');
+  S.currentScreen=name;
+  if(name==='map' && mapReady) setTimeout(()=>map.invalidateSize(),120);
 }
 
-function triggerFlash() {
-  const el = document.getElementById('flash-overlay');
-  el.classList.add('flash');
-  setTimeout(() => { el.style.transition = 'opacity 1s'; el.style.opacity = 0; }, 50);
-  setTimeout(() => { el.classList.remove('flash'); el.style.transition = ''; el.style.opacity = ''; }, 1100);
-}
-
-function showTopSpeedToast() {
-  const speed = Math.round(S.topSpeed);
-  document.getElementById('toast-speed').textContent = speed + ' ' + unitLabel();
-  const toast = document.getElementById('toast');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2800);
-}
-
-/* ════════════════════════════════════
-   NAVIGATION
-════════════════════════════════════ */
-function switchScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
-  S.currentScreen = name;
-
-  if (name === 'map') {
-    initMap();
-    setTimeout(() => map && map.invalidateSize(), 100);
-  }
-}
-
-/* ════════════════════════════════════
-   PERMISSIONS & INIT
-════════════════════════════════════ */
-async function requestPermissions() {
-  // iOS DeviceMotion permission
-  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    try {
-      const result = await DeviceMotionEvent.requestPermission();
-      if (result === 'granted') startMotion();
-    } catch(e) { startMotion(); }
-  } else {
-    startMotion();
-  }
-
-  // Geolocation
+/* ═══════════════════════════════════
+   BOOT
+═══════════════════════════════════ */
+async function requestPerms(){
+  if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+    try{ const r=await DeviceMotionEvent.requestPermission(); if(r==='granted') startMotion(); }
+    catch(e){ startMotion(); }
+  } else { startMotion(); }
   startGPS();
 }
 
-document.getElementById('perm-btn').addEventListener('click', async () => {
-  document.getElementById('perm-screen').style.display = 'none';
-  await requestPermissions();
-  startApp();
-});
-
-document.getElementById('perm-skip').addEventListener('click', () => {
-  document.getElementById('perm-screen').style.display = 'none';
-  startApp();
-});
-
-function startApp() {
+function startApp(){
   initCanvases();
-  drawSpeedometer(0);
-  drawGForce(0, 0);
-  drawHeading(0);
+  drawSpeedo(0); drawGForce(0,0); drawHeading(0);
   render();
 }
 
-// Check if we should auto-start (non-iOS or already visited)
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-if (!isIOS) {
-  document.getElementById('perm-screen').style.display = 'none';
-  requestPermissions();
-  startApp();
+eid('perm-btn').addEventListener('click', async ()=>{
+  eid('perm-screen').style.display='none';
+  await requestPerms(); startApp();
+});
+eid('perm-skip').addEventListener('click', ()=>{
+  eid('perm-screen').style.display='none';
+  startMotion(); startGPS(); startApp();
+});
+
+// Auto-start on non-iOS
+if(!/iPad|iPhone|iPod/.test(navigator.userAgent)){
+  eid('perm-screen').style.display='none';
+  requestPerms(); startApp();
 }
 
-// Handle resize
-window.addEventListener('resize', () => {
-  initCanvases();
-});
+window.addEventListener('resize', initCanvases);
 </script>
 </body>
 </html>
