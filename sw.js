@@ -1,8 +1,8 @@
-const CACHE = 'taximeter-v3';
-const URLS = ['./index.html', './manifest.json'];
+const CACHE = 'wikispeedrun-v1';
+const STATIC = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
   self.skipWaiting();
 });
 
@@ -14,7 +14,12 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  // Don't cache Wikipedia API calls - always fetch fresh
+  if (url.hostname.includes('wikipedia.org') || url.hostname.includes('googleapis.com')) {
+    e.respondWith(fetch(e.request).catch(() => new Response('Offline', { status: 503 })));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
