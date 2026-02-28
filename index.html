@@ -875,24 +875,29 @@ async function startGame() {
 
 function startTimer() {
   if (state.timerInterval) clearInterval(state.timerInterval);
-  state.startTime = Date.now();
+  state.startTime = Date.now() - state.elapsedMs; // resume from where we paused
   state.timerInterval = setInterval(() => {
     state.elapsedMs = Date.now() - state.startTime;
     document.getElementById('timer').textContent = formatTime(state.elapsedMs);
   }, 100);
 }
 
-function stopTimer() {
+function pauseTimer() {
   if (state.timerInterval) {
     clearInterval(state.timerInterval);
     state.timerInterval = null;
   }
-  state.elapsedMs = Date.now() - state.startTime;
+  state.elapsedMs = state.startTime ? Date.now() - state.startTime : state.elapsedMs;
   document.getElementById('timer').textContent = formatTime(state.elapsedMs);
+}
+
+function stopTimer() {
+  pauseTimer();
 }
 
 async function navigateTo(title, countClick = true) {
   showLoading(true);
+  if (countClick) pauseTimer(); // freeze while fetching
   try {
     const realTitle = await resolveRedirect(title);
     const { html, title: actualTitle } = await fetchArticleHTML(realTitle);
@@ -909,8 +914,11 @@ async function navigateTo(title, countClick = true) {
     // Check win
     if (titlesMatch(actualTitle, state.endArticle.title)) {
       setTimeout(triggerWin, 300);
+      return; // don't resume, triggerWin stops it
     }
+    if (countClick) startTimer(); // resume after article ready
   } catch(e) {
+    if (countClick) startTimer(); // resume even on error
     document.getElementById('article-content').innerHTML = `
       <div style="padding:20px; color:#666; text-align:center;">
         <p>⚠️ Could not load article.</p>
