@@ -1025,14 +1025,16 @@ function gbp(v){return'£'+v.toFixed(2);}
 // ─── SCREEN NAVIGATION ────────────────────────────────────────
 let curScreen='sHome';
 function goTo(id){
-  $(curScreen).classList.add('out');
-  setTimeout(()=>$(curScreen).classList.add('hidden'),280);
+  const prev=curScreen;
+  $(prev).classList.add('out');
+  setTimeout(()=>$(prev).classList.add('hidden'),280);
   const el=$(id);
   el.classList.remove('hidden','out');
   curScreen=id;
 }
 function goHome(){
-  $(curScreen).classList.add('hidden');
+  const prev=curScreen;
+  $(prev).classList.add('hidden');
   $('sHome').classList.remove('hidden','out');
   curScreen='sHome';
 }
