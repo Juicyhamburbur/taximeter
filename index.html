@@ -665,6 +665,78 @@ body::before{
 .ms-v{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text)}
 .ms-l{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--text-d);text-transform:uppercase;margin-top:2px}
 
+/* ── Performance timer overlay ── */
+.perf-strip{
+  position:absolute;top:0;left:0;right:0;z-index:600;
+  background:var(--nav);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:10px 16px;
+  transform:translateY(-100%);opacity:0;
+  transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;
+  pointer-events:none;
+}
+.perf-strip.active{transform:translateY(0);opacity:1}
+.perf-arm{
+  font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--cyan);padding:4px 10px;border-radius:20px;
+  background:var(--cyan-s);border:1px solid var(--cyan-d);
+}
+.perf-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--text-m);text-transform:uppercase}
+.perf-time{
+  font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+  color:var(--cyan);text-shadow:0 0 14px var(--cyan-g);letter-spacing:-1px;
+}
+.perf-done{color:var(--green);text-shadow:0 0 14px rgba(0,230,118,.3)}
+
+/* Result flash modal */
+.perf-result{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-54%) scale(.8);
+  z-index:700;background:var(--bg2);border:1px solid var(--cyan-d);
+  border-radius:22px;padding:26px 32px;text-align:center;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);
+  opacity:0;transition:opacity .25s,transform .25s cubic-bezier(.22,1,.36,1);
+  pointer-events:none;min-width:220px;
+}
+.perf-result.show{opacity:1;transform:translate(-50%,-54%) scale(1);pointer-events:all}
+.pr-label{font-size:9px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--text-d);margin-bottom:8px}
+.pr-time{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--cyan);line-height:1;text-shadow:0 0 20px var(--cyan-g)}
+.pr-sub{font-size:12px;color:var(--text-m);margin-top:6px}
+.pr-pb{font-size:11px;font-weight:700;color:var(--green);letter-spacing:2px;margin-top:5px}
+.pr-dismiss{margin-top:18px;background:none;border:1px solid var(--border);border-radius:10px;
+  padding:9px 20px;color:var(--text-m);font-family:'Orbitron',monospace;font-size:10px;
+  letter-spacing:3px;cursor:pointer;transition:border-color .2s}
+.pr-dismiss:active{border-color:var(--cyan)}
+
+/* Hard brake pin */
+.brake-pin{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#ff6d00,#d50000);
+  border:2px solid #fff;box-shadow:0 0 12px rgba(213,0,0,.5);
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+}
+
+/* Personal bests tab */
+.pb-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.pb-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;backdrop-filter:blur(10px);
+  display:flex;align-items:center;gap:14px;
+  transition:background .35s;
+}
+.pb-card.gold{border-color:rgba(255,200,0,.4);background:rgba(255,200,0,.04)}
+.pb-icon{font-size:24px;width:44px;height:44px;border-radius:12px;
+  background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pb-info{flex:1;min-width:0}
+.pb-name{font-size:12px;font-weight:600;color:var(--text-m);letter-spacing:.5px;margin-bottom:4px}
+.pb-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--text)}
+.pb-card.gold .pb-val{color:#ffd600}
+.pb-date{font-size:10px;color:var(--text-d);margin-top:3px}
+.pb-unset{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text-d)}
+.pb-loc{display:inline-flex;align-items:center;gap:4px;margin-top:6px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+  padding:3px 8px;font-size:10px;font-weight:600;color:var(--cyan);cursor:pointer}
+
 /* Snap-to-position button */
 .snap-btn{
   position:absolute;bottom:18px;right:12px;z-index:500;
@@ -848,6 +920,20 @@ body::before{
         </div>
       </div>
       <div class="dt-rec" id="dtRec">
+        <!-- Performance timer strip -->
+        <div class="perf-strip" id="perfStrip">
+          <span class="perf-arm" id="perfArmBadge" style="display:none">ARMED</span>
+          <span class="perf-label" id="perfLabel">0–60</span>
+          <span class="perf-time" id="perfTime">0.00</span>
+        </div>
+        <!-- Result flash -->
+        <div class="perf-result" id="perfResult">
+          <div class="pr-label" id="prLabel">0–60 mph</div>
+          <div class="pr-time" id="prTime">0.00s</div>
+          <div class="pr-sub" id="prSub"></div>
+          <div class="pr-pb" id="prPb" style="display:none">🏆 NEW PERSONAL BEST</div>
+          <button class="pr-dismiss" id="prDismiss">Dismiss</button>
+        </div>
         <div id="liveMap"></div>
         <button class="snap-btn" id="snapBtn" title="Centre on location">◎</button>
         <div class="live-hud">
@@ -876,6 +962,13 @@ body::before{
       <div class="spacer"></div>
     </div>
 
+    <!-- RECORDS (Personal Bests) -->
+    <div class="tab" id="dRecords">
+      <div class="section-title">Personal Bests</div>
+      <div class="pb-grid" id="pbGridEl"></div>
+      <div class="spacer"></div>
+    </div>
+
     <!-- STATS -->
     <div class="tab" id="dStats">
       <div class="section-title">Statistics</div>
@@ -888,6 +981,7 @@ body::before{
   <nav class="b-nav" id="driveNav">
     <button class="nb on" data-tab="dLive"><span class="nb-icon">🔴</span><span class="nb-lbl">Live</span></button>
     <button class="nb" data-tab="dDrives"><span class="nb-icon">🗂</span><span class="nb-lbl">Drives</span></button>
+    <button class="nb" data-tab="dRecords"><span class="nb-icon">🏆</span><span class="nb-lbl">Bests</span></button>
     <button class="nb" data-tab="dStats"><span class="nb-icon">📊</span><span class="nb-lbl">Stats</span></button>
   </nav>
 </div>
@@ -979,7 +1073,7 @@ const LS={
   get(k,d=null){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
 };
-const K={sett:'tm_s3',taxi:'tm_taxi3',drives:'tm_drv3',totals:'tm_tot3'};
+const K={sett:'tm_s3',taxi:'tm_taxi3',drives:'tm_drv3',totals:'tm_tot3',bests:'tm_bests3'};
 
 // ─── SETTINGS ─────────────────────────────────────────────────
 const DEF={baseFare:3,ratePerMile:2.5,waitRate:0.2,minFare:3,theme:'dark',autoNight:false};
@@ -1295,8 +1389,28 @@ const D={
   prevPos:null,prevTS:0,prevSpdMs:0,
   watchId:null,timerID:null,wakeLock:null,
   startTime:null,pts:[],
-  warmup:0,  // skip first N fixes to avoid GPS jump artifacts
+  warmup:0,
+  // Performance timers
+  perf:{
+    state:'idle',    // idle | armed | running | done
+    startTS:0,       // GPS timestamp at launch
+    startPos:null,   // [lat,lon] at launch
+    launchDist:0,    // cumulative distMi at launch
+    elapsed:0,       // seconds
+    hit30:false, t30:0,
+    hit60:false, t60:0,
+    hitQmi:false, tQmi:0,
+    animID:null,
+  },
+  brakes:[],  // {lat,lon,force,mph,ts}
 };
+// Run labels cycling
+const PERF_RUNS=['0–30','0–60','¼ Mile'];
+let perfRunIdx=0;  // which run is being shown / armed for
+function perfRunLabel(){return PERF_RUNS[perfRunIdx];}
+function perfRunKey(){return['t30','t60','tQmi'][perfRunIdx];}
+function perfRunTarget(){return[30,60,null][perfRunIdx];}// null=qmi uses distance
+
 
 function initLiveMap(){
   if(liveMapObj)return;
@@ -1340,7 +1454,9 @@ function addLivePoint(lat,lon,mph){
 
 function dStart(){
   Object.assign(D,{running:true,secs:0,distMi:0,topSpd:0,topAccel:0,
-    prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[],warmup:0});
+    prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[],warmup:0,brakes:[]});
+  Object.assign(D.perf,{state:'idle',startTS:0,startPos:null,launchDist:0,elapsed:0,
+    hit30:false,t30:0,hit60:false,t60:0,hitQmi:false,tQmi:0,animID:null});
   // UI switch
   $('dtIdle').style.display='none';
   $('dtRec').classList.add('active');
@@ -1374,12 +1490,20 @@ function dOnPos(pos){
     const dt=(ts-D.prevTS)/1000;
     if(dt>0&&dt<30){
       if(speed==null||speed<0){const m=hav(D.prevPos[0],D.prevPos[1],lat,lon);sMs=m/dt;}
-      D.distMi+=hav(D.prevPos[0],D.prevPos[1],lat,lon)/1609.344;
-      // Acceleration: Δv/Δt  (m/s per second = m/s²)
+      const segM=hav(D.prevPos[0],D.prevPos[1],lat,lon);
+      D.distMi+=segM/1609.344;
       const dv=sMs-D.prevSpdMs;
       if(dv>0&&dt<4){
-        const acc=dv/dt; // m/s²
+        const acc=dv/dt;
         if(acc>D.topAccel){D.topAccel=acc;D.topAccelLat=lat;D.topAccelLon=lon;}
+      }
+      // Hard braking: deceleration worse than -3.5 m/s²
+      if(dv<0&&dt<4){
+        const dec=dv/dt; // negative
+        if(dec<-3.5){
+          D.brakes.push({lat:+lat.toFixed(5),lon:+lon.toFixed(5),
+            force:+Math.abs(dec).toFixed(2),mph:+(sMs*2.23694).toFixed(1),ts});
+        }
       }
     }
   }
@@ -1387,10 +1511,98 @@ function dOnPos(pos){
   if(mph>D.topSpd){D.topSpd=mph;D.topSpdLat=lat;D.topSpdLon=lon;}
   D.pts.push({la:+lat.toFixed(5),lo:+lon.toFixed(5),sp:+mph.toFixed(1)});
   addLivePoint(lat,lon,mph);
+  // ── Perf timer logic ─────────────────────────────────────
+  perfUpdate(mph,lat,lon,ts);
   D.prevPos=[lat,lon];D.prevTS=ts;D.prevSpdMs=sMs;
   if(S.autoNight){const d=isDay(lat,lon);if(d&&isDark())applyTheme(false);else if(!d&&!isDark())applyTheme(true);}
   dUpdateHUD();
 }
+
+// ── PERFORMANCE TIMER ENGINE ──────────────────────────────
+function perfUpdate(mph,lat,lon,ts){
+  const p=D.perf;
+  if(p.state==='idle'){
+    // Auto-arm when nearly stationary
+    if(mph<3){p.state='armed';perfShowStrip();}
+    return;
+  }
+  if(p.state==='armed'){
+    if(mph>=3){
+      // Launch detected
+      p.state='running';p.startTS=ts;p.startPos=[lat,lon];
+      p.launchDist=D.distMi;p.hit30=false;p.hit60=false;p.hitQmi=false;
+      p.t30=0;p.t60=0;p.tQmi=0;
+      perfShowStrip();
+      // Start rAF timer
+      function rafLoop(){
+        if(p.state!=='running')return;
+        p.elapsed=(Date.now()-p.startTS)/1000;
+        $('perfTime').textContent=p.elapsed.toFixed(2);
+        p.animID=requestAnimationFrame(rafLoop);
+      }
+      p.animID=requestAnimationFrame(rafLoop);
+    } else if(mph>=2){/* still rolling slowly, stay armed */}
+    return;
+  }
+  if(p.state==='running'){
+    const elapsed=(ts-p.startTS)/1000;  // ts in ms
+    // 0–30
+    if(!p.hit30&&mph>=30){p.hit30=true;p.t30=elapsed;}
+    // 0–60
+    if(!p.hit60&&mph>=60){p.hit60=true;p.t60=elapsed;
+      if(perfRunIdx===1)perfRunComplete('0–60 mph',p.t60,'t60',lat,lon);}
+    // 0–30 finish
+    if(perfRunIdx===0&&p.hit30&&!p.hitQmi){
+      // treat as done for 0-30 run
+      p.hitQmi=true;
+      perfRunComplete('0–30 mph',p.t30,'t30',lat,lon);
+    }
+    // Quarter mile: 402.336m = 0.25 mi from launch
+    const distFromLaunch=(D.distMi-p.launchDist)*1609.344; // metres
+    if(!p.hitQmi&&distFromLaunch>=402.336){
+      p.hitQmi=true;p.tQmi=elapsed;
+      if(perfRunIdx===2)perfRunComplete('¼ Mile',p.tQmi,'tQmi',lat,lon);
+    }
+    // Auto-stop if all targets hit or speed drops off again (>10s into run)
+    if(elapsed>10&&mph<5){
+      if(p.animID){cancelAnimationFrame(p.animID);p.animID=null;}
+      p.state='idle';perfHideStrip();
+    }
+  }
+}
+function perfShowStrip(){
+  const s=$('perfStrip'),arm=$('perfArmBadge'),lbl=$('perfLabel');
+  s.classList.add('active');
+  if(D.perf.state==='armed'){
+    arm.style.display='inline-flex';lbl.textContent=perfRunLabel();$('perfTime').textContent='0.00';
+    $('perfTime').classList.remove('perf-done');
+  } else {
+    arm.style.display='none';lbl.textContent=perfRunLabel();
+    $('perfTime').classList.remove('perf-done');
+  }
+}
+function perfHideStrip(){$('perfStrip').classList.remove('active');}
+function perfRunComplete(label,elapsed,key,lat,lon){
+  if(D.perf.animID){cancelAnimationFrame(D.perf.animID);D.perf.animID=null;}
+  D.perf.state='done';
+  $('perfTime').textContent=elapsed.toFixed(2);
+  $('perfTime').classList.add('perf-done');
+  // Check personal best
+  const bests=LS.get(K.bests,{});
+  const isPB=!bests[key]||elapsed<bests[key].time;
+  if(isPB){bests[key]={time:elapsed,date:new Date().toISOString(),lat,lon};LS.set(K.bests,bests);}
+  // Show result modal
+  $('prLabel').textContent=label;
+  $('prTime').textContent=elapsed.toFixed(2)+'s';
+  $('prSub').textContent=isPB?'Personal best!':'Previous: '+(bests[key]?bests[key].time.toFixed(2)+'s':'—');
+  $('prPb').style.display=isPB?'block':'none';
+  $('perfResult').classList.add('show');
+  if(navigator.vibrate)navigator.vibrate([80,40,80,40,120]);
+  renderPersonalBests();
+  // Re-arm after short delay
+  setTimeout(()=>{D.perf.state='idle';perfHideStrip();},3000);
+}
+
 function dUpdateHUD(){
   const mph=D.prevSpdMs*2.23694;
   $('hudSpd').textContent=mph.toFixed(0);
@@ -1411,11 +1623,15 @@ function dStop(){
   $('driveNav').classList.remove('gone');
   $('driveAppBar').style.display='flex';
   // Save
+  // Cancel any active perf animation
+  if(D.perf.animID){cancelAnimationFrame(D.perf.animID);D.perf.animID=null;}
+  perfHideStrip();$('perfResult').classList.remove('show');
   const sess={
     id:Date.now()+'',date:D.startTime,secs:D.secs,distMi:D.distMi,
     topSpd:D.topSpd,topSpdLat:D.topSpdLat,topSpdLon:D.topSpdLon,
     topAccel:D.topAccel,topAccelLat:D.topAccelLat,topAccelLon:D.topAccelLon,
-    pts:D.pts,
+    pts:D.pts,brakes:D.brakes,
+    t30:D.perf.t30,t60:D.perf.t60,tQmi:D.perf.tQmi,
   };
   const drives=LS.get(K.drives,[]);drives.push(sess);LS.set(K.drives,drives.slice(-60));
   // Update all-time totals
@@ -1424,7 +1640,7 @@ function dStop(){
   if(D.topSpd>tot.topSpd){tot.topSpd=D.topSpd;tot.topSpdLat=D.topSpdLat;tot.topSpdLon=D.topSpdLon;}
   if(D.topAccel>tot.topAccel){tot.topAccel=D.topAccel;tot.topAccelLat=D.topAccelLat;tot.topAccelLon=D.topAccelLon;}
   LS.set(K.totals,tot);
-  updateLastDrive();renderDrivesList();renderDriveStats();
+  updateLastDrive();renderDrivesList();renderDriveStats();renderPersonalBests();
 }
 
 function updateLastDrive(){
@@ -1458,6 +1674,74 @@ function renderDrivesList(){
   el.querySelectorAll('.drive-card').forEach(c=>c.addEventListener('click',()=>{
     const d=drives.find(x=>x.id===c.dataset.id);if(d)openDriveDetail(d);
   }));
+}
+
+function renderPersonalBests(){
+  const bests=LS.get(K.bests,{});
+  const drives=LS.get(K.drives,[]);
+  const totals=LS.get(K.totals,{topSpd:0,topAccel:0});
+  // Longest single drive
+  const longest=drives.length?drives.reduce((a,b)=>b.distMi>a.distMi?b:a,drives[0]):null;
+  // Most miles in a day
+  const byDay={};drives.forEach(d=>{const day=d.date.slice(0,10);byDay[day]=(byDay[day]||0)+d.distMi;});
+  let bestDay=null,bestDayMi=0;
+  Object.entries(byDay).forEach(([day,mi])=>{if(mi>bestDayMi){bestDayMi=mi;bestDay=day;}});
+
+  function pbCard(icon,name,val,sub,date,locFn,isGold=false){
+    const set=val!==null&&val!==undefined&&val!==0;
+    return `<div class="pb-card${isGold?' gold':''}">
+      <div class="pb-icon">${icon}</div>
+      <div class="pb-info">
+        <div class="pb-name">${name}</div>
+        ${set
+          ?`<div class="pb-val">${val}</div><div class="pb-date">${date||''}</div>${locFn?`<div class="pb-loc" onclick="${locFn}">📍 View</div>`:''}`
+          :`<div class="pb-unset">Not set</div>`}
+      </div>
+    </div>`;
+  }
+
+  const fmt=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'';
+
+  let html='';
+  // Top speed
+  html+=pbCard('⚡','Top Speed',
+    totals.topSpd>0?`${totals.topSpd.toFixed(0)} mph`:null,'',
+    '',
+    totals.topSpd>0&&totals.topSpdLat?`openPinMap('Top Speed',${totals.topSpdLat},${totals.topSpdLon},'⚡','Top Speed: ${totals.topSpd.toFixed(0)} mph',[{v:'${totals.topSpd.toFixed(0)} mph',l:'Speed'}])`:null,
+    true);
+  // 0-30
+  html+=pbCard('🟢','0 – 30 mph',
+    bests.t30?`${bests.t30.time.toFixed(2)}s`:null,'',
+    bests.t30?fmt(bests.t30.date):'',
+    bests.t30&&bests.t30.lat?`openPinMap('0–30 Location',${bests.t30.lat},${bests.t30.lon},'🟢','0–30 mph: ${bests.t30.time.toFixed(2)}s',[{v:'${bests.t30.time.toFixed(2)}s',l:'Time'}])`:null);
+  // 0-60
+  html+=pbCard('🔥','0 – 60 mph',
+    bests.t60?`${bests.t60.time.toFixed(2)}s`:null,'',
+    bests.t60?fmt(bests.t60.date):'',
+    bests.t60&&bests.t60.lat?`openPinMap('0–60 Location',${bests.t60.lat},${bests.t60.lon},'🔥','0–60 mph: ${bests.t60.time.toFixed(2)}s',[{v:'${bests.t60.time.toFixed(2)}s',l:'Time'}])`:null,
+    true);
+  // Quarter mile
+  html+=pbCard('🏁','Quarter Mile',
+    bests.tQmi?`${bests.tQmi.time.toFixed(2)}s`:null,'',
+    bests.tQmi?fmt(bests.tQmi.date):'',
+    bests.tQmi&&bests.tQmi.lat?`openPinMap('¼ Mile Location',${bests.tQmi.lat},${bests.tQmi.lon},'🏁','¼ Mile: ${bests.tQmi.time.toFixed(2)}s',[{v:'${bests.tQmi.time.toFixed(2)}s',l:'Time'}])`:null);
+  // Hardest brake
+  const allBrakes=drives.flatMap(d=>d.brakes||[]);
+  const hardest=allBrakes.length?allBrakes.reduce((a,b)=>b.force>a.force?b:a,allBrakes[0]):null;
+  html+=pbCard('🛑','Hardest Brake',
+    hardest?`${(hardest.force/9.81).toFixed(2)} g`:null,'',
+    hardest?`${hardest.mph.toFixed(0)} mph → 0`:'',
+    hardest?`openPinMap('Hardest Brake',${hardest.lat},${hardest.lon},'🛑','Brake: ${(hardest.force/9.81).toFixed(2)} g',[{v:'${(hardest.force/9.81).toFixed(2)} g',l:'Force'},{v:'${hardest.mph.toFixed(0)} mph',l:'Speed'}])`:null);
+  // Longest drive
+  html+=pbCard('🗺','Longest Drive',
+    longest?`${longest.distMi.toFixed(2)} mi`:null,'',
+    longest?fmt(longest.date):'',null);
+  // Best day
+  html+=pbCard('📅','Best Day',
+    bestDay?`${bestDayMi.toFixed(1)} mi`:null,'',
+    bestDay?bestDay.split('-').reverse().join('/'):'',null);
+
+  const el=$('pbGridEl');if(el)el.innerHTML=html;
 }
 
 function renderDriveStats(){
@@ -1515,11 +1799,12 @@ function clearDetailMapLayers(){
 
 function openDriveDetail(session){
   $('detailTitleEl').textContent=fmtDate(session.date);
+  const brakeCount=(session.brakes&&session.brakes.length)||0;
   $('detailStatsEl').innerHTML=`
     <div class="ms"><div class="ms-v">${session.distMi.toFixed(2)} mi</div><div class="ms-l">Distance</div></div>
     <div class="ms"><div class="ms-v">${fmtT(session.secs)}</div><div class="ms-l">Duration</div></div>
     <div class="ms"><div class="ms-v">${session.topSpd.toFixed(0)} mph</div><div class="ms-l">Top Speed</div></div>
-    <div class="ms"><div class="ms-v">${(session.topAccel/9.81).toFixed(2)} g</div><div class="ms-l">Max G</div></div>`;
+    <div class="ms"><div class="ms-v">${brakeCount}</div><div class="ms-l">Hard Brakes</div></div>`;
   $('detailOv').classList.add('open');
   setTimeout(()=>{
     initDetailMap();clearDetailMapLayers();
@@ -1574,6 +1859,14 @@ function drawSessionRoute(session){
     L.marker([session.topAccelLat,session.topAccelLon],{icon:ai,zIndexOffset:900})
       .bindPopup(`Max Accel: ${(session.topAccel/9.81).toFixed(2)} g`).addTo(detailMapObj);
   }
+  // Hard brake pins
+  if(session.brakes&&session.brakes.length){
+    session.brakes.forEach(b=>{
+      const bi=L.divIcon({html:'<div class="brake-pin">🛑</div>',className:'',iconSize:[22,22],iconAnchor:[11,11]});
+      L.marker([b.lat,b.lon],{icon:bi,zIndexOffset:800})
+        .bindPopup(`Hard brake: ${(b.force/9.81).toFixed(2)} g at ${b.mph.toFixed(0)} mph`).addTo(detailMapObj);
+    });
+  }
   detailMapObj.fitBounds(allPts,{padding:[30,30]});
 }
 
@@ -1599,7 +1892,7 @@ function closeSettings(){
 // ─── INIT ──────────────────────────────────────────────────────
 function init(){
   loadS();drawTicks();applyTheme(isDark());
-  renderHistory();renderEarnings();renderDrivesList();renderDriveStats();updateLastDrive();
+  renderHistory();renderEarnings();renderDrivesList();renderDriveStats();renderPersonalBests();updateLastDrive();
 
   // Home
   $('cardTaxi').addEventListener('click',()=>goTo('sTaxi'));
@@ -1650,6 +1943,15 @@ function init(){
     if(D.running)dStop();goHome();
   });
   $('dtBtnStart').addEventListener('click',dStart);
+  // Dismiss perf result
+  $('prDismiss').addEventListener('click',()=>{$('perfResult').classList.remove('show');});
+  // Tap the strip to cycle which run is armed
+  $('perfStrip').addEventListener('click',()=>{
+    if(D.perf.state==='armed'||D.perf.state==='idle'){
+      perfRunIdx=(perfRunIdx+1)%3;
+      $('perfLabel').textContent=perfRunLabel();
+    }
+  });
   $('snapBtn').addEventListener('click',()=>{
     if(liveMapObj&&D.lastLat)liveMapObj.setView([D.lastLat,D.lastLon],15,{animate:true});
   });
@@ -1658,6 +1960,7 @@ function init(){
   document.querySelectorAll('#driveNav .nb').forEach(b=>b.addEventListener('click',function(){
     switchTab(this,'sDrive',this.dataset.tab);
     if(this.dataset.tab==='dLive'&&D.running&&liveMapObj)setTimeout(()=>liveMapObj.invalidateSize(),100);
+    if(this.dataset.tab==='dRecords')renderPersonalBests();
   }));
 
   // Detail overlay close
@@ -1668,7 +1971,7 @@ function init(){
   $('clearAllBtn').addEventListener('click',()=>{
     if(!confirm('Delete ALL data? This cannot be undone.\n\nThis will clear:\n• All taxi trips & earnings\n• All drives & statistics'))return;
     [K.taxi,K.drives,K.totals].forEach(k=>localStorage.removeItem(k));
-    renderHistory();renderEarnings();renderDrivesList();renderDriveStats();updateLastDrive();
+    renderHistory();renderEarnings();renderDrivesList();renderDriveStats();renderPersonalBests();updateLastDrive();
     $('settOv').classList.remove('open');
   });
   $('togTheme').addEventListener('click',()=>{applyTheme(!isDark());});
