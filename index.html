@@ -68,10 +68,10 @@ body::before{
   position:fixed;inset:0;z-index:1;
   display:flex;flex-direction:column;
   transition:opacity .26s ease,transform .26s ease;
-  will-change:opacity,transform;
 }
+.screen.hidden{display:none}
 .screen.out{opacity:0;transform:translateX(-28px);pointer-events:none}
-.screen.hidden{opacity:0;transform:translateX(28px);pointer-events:none;display:flex}
+.screen.entering{opacity:0;transform:translateX(28px)}
 
 /* === HOME SCREEN =============================================== */
 #sHome{justify-content:flex-start;overflow:hidden}
@@ -1026,17 +1026,25 @@ function gbp(v){return'£'+v.toFixed(2);}
 let curScreen='sHome';
 function goTo(id){
   const prev=curScreen;
-  $(prev).classList.add('out');
-  setTimeout(()=>$(prev).classList.add('hidden'),280);
-  const el=$(id);
-  el.classList.remove('hidden','out');
   curScreen=id;
+  // Animate out the current screen
+  $(prev).classList.add('out');
+  setTimeout(()=>{ $(prev).classList.remove('out'); $(prev).classList.add('hidden'); },280);
+  // Prepare new screen off-screen, then transition in
+  const el=$(id);
+  el.classList.remove('hidden');
+  el.classList.add('entering');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.remove('entering')));
 }
 function goHome(){
   const prev=curScreen;
-  $(prev).classList.add('hidden');
-  $('sHome').classList.remove('hidden','out');
   curScreen='sHome';
+  $(prev).classList.add('hidden');
+  $(prev).classList.remove('out','entering');
+  const h=$('sHome');
+  h.classList.remove('hidden');
+  h.classList.add('entering');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>h.classList.remove('entering')));
 }
 function switchTab(navEl,screenId,tabId){
   document.querySelectorAll('#'+screenId+' .tab').forEach(t=>t.classList.remove('active'));
