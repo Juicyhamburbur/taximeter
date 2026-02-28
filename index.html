@@ -1,2013 +1,1845 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="TaxiMeter"/>
-<title>TaxiMeter</title>
-<link rel="manifest" href="manifest.json"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#05050C">
+<title>APEX TELEMETRY</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-/* === THEME VARIABLES =========================================== */
-[data-theme="dark"]{
-  --bg:#09090f;--bg2:#10101a;--bg3:#181824;--bg4:#1f1f2e;
-  --surface:rgba(255,255,255,0.042);--border:rgba(255,255,255,0.08);
-  --amber:#ffb300;--amber-d:rgba(255,179,0,0.38);
-  --amber-g:rgba(255,179,0,0.2);--amber-s:rgba(255,179,0,0.055);
-  --cyan:#00e5ff;--cyan-d:rgba(0,229,255,0.38);
-  --cyan-g:rgba(0,229,255,0.18);--cyan-s:rgba(0,229,255,0.055);
-  --green:#00e676;--red:#ff3d5a;
-  --text:#f8f8fc;--text-m:rgba(248,248,252,0.48);--text-d:rgba(248,248,252,0.18);
-  --shadow:rgba(0,0,0,0.85);--nav:rgba(9,9,15,0.96);
-  --card-shadow:0 2px 20px rgba(0,0,0,0.55);
-}
-[data-theme="light"]{
-  --bg:#f5efdf;--bg2:#ede4cc;--bg3:#e4d9bf;--bg4:#d8ccb0;
-  --surface:rgba(255,255,255,0.58);--border:rgba(0,0,0,0.085);
-  --amber:#8f5800;--amber-d:rgba(143,88,0,0.38);
-  --amber-g:rgba(143,88,0,0.16);--amber-s:rgba(143,88,0,0.06);
-  --cyan:#005f78;--cyan-d:rgba(0,95,120,0.35);
-  --cyan-g:rgba(0,95,120,0.15);--cyan-s:rgba(0,95,120,0.055);
-  --green:#006b32;--red:#b8001f;
-  --text:#140c00;--text-m:rgba(20,12,0,0.48);--text-d:rgba(20,12,0,0.2);
-  --shadow:rgba(0,0,0,0.1);--nav:rgba(245,239,223,0.96);
-  --card-shadow:0 2px 14px rgba(0,0,0,0.1);
-}
-
-/* === RESET ===================================================== */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%;-webkit-text-size-adjust:100%}
-body{
-  background:var(--bg);color:var(--text);
-  font-family:'Barlow',sans-serif;height:100dvh;
-  overflow:hidden;transition:background .35s,color .35s;
-  -webkit-font-smoothing:antialiased;
+/* ═══════════════════════════════════════════════
+   APEX TELEMETRY — Core Variables
+═══════════════════════════════════════════════ */
+:root {
+  --bg:         #05050C;
+  --surface:    #09091A;
+  --surface-2:  #0E0E22;
+  --surface-3:  #131330;
+  --accent:     #FF3D00;
+  --accent-dim: rgba(255,61,0,0.18);
+  --accent-glow:rgba(255,61,0,0.5);
+  --cyan:       #00CFFF;
+  --cyan-dim:   rgba(0,207,255,0.15);
+  --cyan-glow:  rgba(0,207,255,0.4);
+  --gold:       #FFB800;
+  --green:      #00E676;
+  --white:      #F0F0FF;
+  --text-2:     #7070A0;
+  --text-3:     #30305A;
+  --border:     rgba(255,255,255,0.045);
+  --border-a:   rgba(255,61,0,0.2);
+  --font-d:     'Orbitron', monospace;
+  --font-ui:    'Barlow Condensed', sans-serif;
+  --safe-t:     env(safe-area-inset-top, 0px);
+  --safe-b:     env(safe-area-inset-bottom, 0px);
 }
 
-/* Ambient atmosphere */
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse 100% 55% at 50% -10%,var(--amber-s),transparent 65%),
-    radial-gradient(ellipse 70% 45% at 5% 105%,var(--amber-s),transparent 60%);
-  transition:background .35s;
-}
-/* Grid texture dark only */
-[data-theme="dark"] body::after{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:
-    repeating-linear-gradient(0deg,rgba(255,255,255,.011) 0,rgba(255,255,255,.011) 1px,transparent 1px,transparent 46px),
-    repeating-linear-gradient(90deg,rgba(255,255,255,.011) 0,rgba(255,255,255,.011) 1px,transparent 1px,transparent 46px);
+/* ═══════ RESET & BASE ═══════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--white); font-family: var(--font-ui); }
+button { background: none; border: none; cursor: pointer; font-family: inherit; color: inherit; }
+canvas { display: block; }
+
+/* ═══════ SCANLINE OVERLAY ═══════ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
 }
 
-/* === SCREEN SYSTEM ============================================= */
-.screen{
-  position:fixed;inset:0;z-index:1;
-  display:flex;flex-direction:column;
-  transition:opacity .26s ease,transform .26s ease;
-}
-.screen.hidden{display:none}
-.screen.out{opacity:0;transform:translateX(-28px);pointer-events:none}
-.screen.entering{opacity:0;transform:translateX(28px)}
-
-/* === HOME SCREEN =============================================== */
-#sHome{justify-content:flex-start;overflow:hidden}
-
-.home-top{
-  position:relative;z-index:2;
-  padding:max(env(safe-area-inset-top),44px) 22px 0;
-  display:flex;justify-content:space-between;align-items:flex-start;
-}
-.home-wordmark{
-  display:flex;flex-direction:column;gap:2px;
-}
-.home-wordmark-main{
-  font-family:'Orbitron',monospace;font-size:24px;font-weight:900;
-  color:var(--text);letter-spacing:1px;
-  opacity:0;transform:translateY(12px);
-  animation:fadeUp .55s .05s cubic-bezier(.22,1,.36,1) forwards;
-}
-.home-wordmark-sub{
-  font-size:12px;font-weight:500;color:var(--text-m);letter-spacing:3px;text-transform:uppercase;
-  opacity:0;transform:translateY(10px);
-  animation:fadeUp .5s .2s cubic-bezier(.22,1,.36,1) forwards;
-}
-@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
-
-.home-theme{
-  width:38px;height:38px;border-radius:50%;
-  border:1px solid var(--border);background:var(--surface);
-  color:var(--text-m);font-size:16px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(10px);flex-shrink:0;
-  opacity:0;animation:fadeUp .5s .3s cubic-bezier(.22,1,.36,1) forwards;
-  transition:border-color .2s,color .2s;
+/* ═══════ APP SHELL ═══════ */
+#app {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  padding-top: var(--safe-t);
+  padding-bottom: var(--safe-b);
+  overflow: hidden;
 }
 
-.home-cards{
-  flex:1;display:flex;flex-direction:column;
-  justify-content:center;gap:14px;padding:20px 22px;
-  position:relative;z-index:2;
+/* ═══════ HEADER ═══════ */
+#header {
+  height: 52px; min-height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(to bottom, rgba(9,9,26,0.98), rgba(9,9,26,0.85));
+  position: relative; z-index: 10;
+}
+.header-logo {
+  display: flex; align-items: center; gap: 8px;
+}
+.header-logo .logo-mark {
+  width: 28px; height: 28px; position: relative;
+}
+.header-logo .logo-mark svg { width: 100%; height: 100%; }
+.logo-text {
+  font-family: var(--font-d); font-size: 16px; font-weight: 900;
+  letter-spacing: 0.15em; color: var(--white);
+}
+.logo-text span { color: var(--accent); }
+.header-status {
+  display: flex; align-items: center; gap: 12px;
+}
+.gps-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-2);
+  transition: all 0.4s ease;
+}
+.gps-badge.active {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(0,230,118,0.08);
+  box-shadow: 0 0 10px rgba(0,230,118,0.15);
+}
+.gps-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-3);
+  transition: background 0.4s;
+}
+.gps-badge.active .gps-dot { background: var(--green); animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
+
+.header-clock {
+  font-family: var(--font-d); font-size: 11px; font-weight: 500;
+  color: var(--text-2); letter-spacing: 0.08em;
 }
 
-.mode-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:24px;padding:22px 20px;cursor:pointer;
-  backdrop-filter:blur(16px);
-  box-shadow:var(--card-shadow);
-  transition:transform .14s ease,box-shadow .14s ease,border-color .2s;
-  position:relative;overflow:hidden;
-  opacity:0;transform:translateY(18px);
+/* ═══════ SCREENS ═══════ */
+#screens {
+  flex: 1; overflow: hidden; position: relative;
 }
-.mode-card.taxi{animation:fadeUp .6s .35s cubic-bezier(.22,1,.36,1) forwards}
-.mode-card.drive{animation:fadeUp .6s .48s cubic-bezier(.22,1,.36,1) forwards}
-.mode-card::after{
-  content:'';position:absolute;inset:0;opacity:0;
-  transition:opacity .2s;border-radius:24px;
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  overflow: hidden;
 }
-.mode-card.taxi::after{background:radial-gradient(circle at 15% 50%,var(--amber-s),transparent 55%)}
-.mode-card.drive::after{background:radial-gradient(circle at 15% 50%,var(--cyan-s),transparent 55%)}
-.mode-card:active{transform:scale(.965);box-shadow:none}
-.mode-card:active::after{opacity:1}
-
-.mc-row{display:flex;align-items:center;gap:16px;margin-bottom:10px}
-.mc-icon-wrap{
-  width:52px;height:52px;border-radius:16px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:26px;
-}
-.taxi .mc-icon-wrap{background:var(--amber-s);border:1px solid var(--amber-d)}
-.drive .mc-icon-wrap{background:var(--cyan-s);border:1px solid var(--cyan-d)}
-.mc-titles{}
-.mc-title{
-  font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
-  color:var(--text);letter-spacing:.5px;line-height:1;margin-bottom:4px;
-}
-.mc-subtitle{font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;}
-.taxi .mc-subtitle{color:var(--amber-d)}
-.drive .mc-subtitle{color:var(--cyan-d)}
-.mc-desc{font-size:13px;color:var(--text-m);line-height:1.55}
-.mc-cta{
-  display:flex;align-items:center;justify-content:space-between;margin-top:14px;
-}
-.mc-tag{
-  font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
-  padding:4px 10px;border-radius:20px;
-}
-.taxi .mc-tag{background:var(--amber-s);color:var(--amber);border:1px solid var(--amber-d)}
-.drive .mc-tag{background:var(--cyan-s);color:var(--cyan);border:1px solid var(--cyan-d)}
-.mc-arrow{font-size:13px;font-weight:700;}
-.taxi .mc-arrow{color:var(--amber)}
-.drive .mc-arrow{color:var(--cyan)}
-
-/* === SHARED APP SHELL ========================================== */
-.app-bar{
-  flex-shrink:0;position:relative;z-index:2;
-  display:flex;align-items:center;gap:10px;
-  padding:max(env(safe-area-inset-top),16px) 16px 8px;
-}
-.back-btn{
-  width:34px;height:34px;border-radius:50%;
-  border:1px solid var(--border);background:var(--surface);
-  color:var(--text-m);font-size:16px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;flex-shrink:0;backdrop-filter:blur(8px);
-  transition:border-color .2s,color .2s,transform .1s;
-}
-.back-btn:active{transform:scale(.9)}
-.ab-title{
-  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
-  letter-spacing:4px;color:var(--text-d);text-transform:uppercase;flex:1;
-}
-.ab-right{display:flex;gap:8px;margin-left:auto}
-.icon-btn{
-  width:34px;height:34px;border-radius:50%;
-  border:1px solid var(--border);background:var(--surface);
-  color:var(--text-m);font-size:14px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;backdrop-filter:blur(8px);
-  transition:border-color .2s,color .2s,background .2s;
-}
-.icon-btn:active{background:var(--amber-s);border-color:var(--amber-d);color:var(--amber)}
-
-/* Tab container */
-.tabs-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
-.tab{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  padding:0 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  opacity:0;pointer-events:none;transform:translateY(6px);
-  transition:opacity .2s ease,transform .2s ease;
-}
-.tab.active{opacity:1;pointer-events:all;transform:translateY(0)}
-.tab.no-pad{padding:0}
-
-/* Bottom nav */
-.b-nav{
-  flex-shrink:0;display:flex;
-  background:var(--nav);border-top:1px solid var(--border);
-  padding-bottom:max(env(safe-area-inset-bottom),4px);
-  backdrop-filter:blur(24px);
-  transition:all .25s ease;
-  position:relative;z-index:2;
-}
-.b-nav.gone{height:0;padding:0;border:none;overflow:hidden;opacity:0;pointer-events:none}
-.nb{
-  flex:1;border:none;background:none;color:var(--text-d);
-  padding:9px 0 5px;display:flex;flex-direction:column;
-  align-items:center;gap:3px;cursor:pointer;transition:color .18s;
-}
-.nb.on{color:var(--amber)}
-.nb-icon{font-size:18px;line-height:1}
-.nb-lbl{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
-
-/* === SHARED COMPONENTS ========================================= */
-.section-title{
-  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
-  letter-spacing:4px;color:var(--text);text-transform:uppercase;
-  padding:14px 0 16px;flex-shrink:0;
-}
-.empty-state{text-align:center;padding:52px 16px;color:var(--text-d);font-size:13px;font-weight:500;line-height:2.1}
-.spacer{height:16px;flex-shrink:0}
-
-/* Generic card */
-.card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;backdrop-filter:blur(10px);
-  box-shadow:var(--card-shadow);transition:background .35s;
-}
-.card-tap{cursor:pointer;transition:border-color .18s,background .18s,transform .1s}
-.card-tap:active{transform:scale(.98);border-color:var(--amber-d);background:var(--amber-s)}
-
-/* Toggle */
-.tog{
-  width:50px;height:28px;border-radius:14px;
-  background:var(--bg3);border:1px solid var(--border);
-  position:relative;cursor:pointer;flex-shrink:0;
-  transition:background .28s,border-color .28s;
-}
-.tog.on{background:var(--amber);border-color:var(--amber)}
-.tog-th{
-  position:absolute;top:3px;left:3px;
-  width:20px;height:20px;border-radius:50%;
-  background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.35);
-  transition:transform .28s cubic-bezier(.4,0,.2,1);
-}
-.tog.on .tog-th{transform:translateX(22px)}
-
-/* Form input */
-.fi{
-  background:var(--surface);border:1px solid var(--border);border-radius:12px;
-  color:var(--text);font-family:'Barlow',sans-serif;font-size:15px;font-weight:500;
-  padding:13px 15px;outline:none;width:100%;
-  transition:border-color .2s;backdrop-filter:blur(8px);
-}
-.fi::placeholder{color:var(--text-d)}
-.fi:focus{border-color:var(--amber)}
-.fi-num{
-  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
-  color:var(--amber);font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
-  padding:8px 11px;width:100px;text-align:right;outline:none;
-  transition:border-color .2s;
-}
-.fi-num:focus{border-color:var(--amber)}
-
-/* Buttons */
-.btn{
-  width:100%;padding:15px;border:none;border-radius:14px;
-  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:4px;
-  cursor:pointer;text-transform:uppercase;
-  transition:transform .1s,opacity .2s,box-shadow .2s;
-}
-.btn:active{transform:scale(.97);opacity:.9}
-.btn-green{background:linear-gradient(135deg,#00e676,#00c853);color:#000;box-shadow:0 6px 20px rgba(0,230,118,.26)}
-.btn-red{background:linear-gradient(135deg,#ff3d5a,#c8001e);color:#fff;box-shadow:0 6px 20px rgba(255,61,90,.26)}
-.btn-amber{background:linear-gradient(135deg,var(--amber),#e07500);color:#000;box-shadow:0 6px 20px var(--amber-g)}
-.btn-cyan{background:linear-gradient(135deg,var(--cyan),#009fcc);color:#000;box-shadow:0 6px 20px var(--cyan-g)}
-.btn-ghost{
-  background:var(--surface);border:1px solid var(--border);
-  color:var(--text-m);font-size:10px;letter-spacing:3px;
+.screen.active {
+  opacity: 1; pointer-events: all; transform: translateY(0);
 }
 
-/* Overlay */
-.ov{
-  position:fixed;inset:0;z-index:300;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(12px);
-  display:flex;align-items:flex-end;
-  opacity:0;pointer-events:none;transition:opacity .28s;
+/* ═══════ NAV BAR ═══════ */
+#nav {
+  height: 62px; min-height: 62px;
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--border);
+  background: rgba(5,5,12,0.97);
+  position: relative; z-index: 10;
 }
-.ov.open{opacity:1;pointer-events:all}
-.sheet{
-  width:100%;background:var(--bg2);
-  border-radius:22px 22px 0 0;border-top:1px solid var(--border);
-  padding:14px 22px max(env(safe-area-inset-bottom),28px);
-  transform:translateY(100%);
-  transition:transform .34s cubic-bezier(.32,.72,0,1),background .35s;
-  max-height:92dvh;overflow-y:auto;
+#nav::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(to right, transparent, var(--accent-dim), transparent);
 }
-.ov.open .sheet{transform:translateY(0)}
-.sh-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
-.sh-title{
-  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
-  letter-spacing:5px;color:var(--text-m);text-align:center;
-  text-transform:uppercase;margin-bottom:18px;
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; position: relative;
+  color: var(--text-3); transition: color 0.2s;
 }
-.field{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:13px 0;border-bottom:1px solid var(--border);
+.nav-btn svg { width: 20px; height: 20px; transition: all 0.2s; }
+.nav-btn span {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
-.field:last-of-type{border-bottom:none}
-.f-info{display:flex;flex-direction:column;gap:2px}
-.f-name{font-size:14px;font-weight:500;color:var(--text)}
-.f-desc{font-size:11px;color:var(--text-m)}
-.sh-done{
-  width:100%;padding:14px;margin-top:18px;border:none;border-radius:14px;
-  background:linear-gradient(135deg,var(--amber),#e07500);color:#000;
-  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:4px;
-  cursor:pointer;transition:opacity .2s;
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active::after {
+  content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  border-radius: 0 0 2px 2px;
 }
-.sh-done:active{opacity:.85}
+.nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent-glow)); }
 
-/* === TAXI — METER ============================================== */
-.meter-area{
-  flex:1;min-height:0;display:flex;align-items:center;
-  justify-content:center;padding:4px 0;
+/* ═══════ ──────────────────── ═══════
+   SCREEN 1: GAUGE
+═══════ ──────────────────── ═══════ */
+#screen-gauge {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
 }
-.ring-wrap{
-  position:relative;
-  width:min(68vw,246px);height:min(68vw,246px);
+.speed-mode-badge {
+  text-align: center; padding: 6px 0 0;
 }
-.ring-wrap::before{
-  content:'';position:absolute;inset:-18px;border-radius:50%;
-  background:radial-gradient(circle,var(--amber-g),transparent 60%);
-  opacity:0;transition:opacity .55s;pointer-events:none;
+.speed-mode-badge span {
+  display: inline-block; font-family: var(--font-ui); font-size: 11px;
+  font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
+  padding: 3px 14px; border-radius: 2px;
+  border: 1px solid var(--text-3); color: var(--text-2);
+  transition: all 0.4s ease;
 }
-.ring-wrap.running::before{opacity:1}
-.ring-wrap.waiting::before{opacity:1;animation:wglow 1.4s ease-in-out infinite}
-@keyframes wglow{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.04);opacity:1}}
-
-.ring-svg{
-  position:absolute;inset:0;width:100%;height:100%;
-  transform:rotate(-90deg);overflow:visible;
+.speed-mode-badge span.mode-track {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 15px var(--accent-dim);
 }
-.r-bg{fill:none;stroke:var(--border);stroke-width:2.5}
-.r-arc{
-  fill:none;stroke:var(--amber);stroke-width:2.5;stroke-linecap:round;
-  stroke-dasharray:754;stroke-dashoffset:754;
-  filter:drop-shadow(0 0 6px var(--amber-g));
-  transition:stroke-dashoffset .8s ease,stroke .35s;
+.speed-mode-badge span.mode-highway {
+  border-color: var(--gold); color: var(--gold);
+  background: rgba(255,184,0,0.08);
 }
-.ring-face{
-  position:absolute;inset:15px;border-radius:50%;
-  background:var(--bg);border:1px solid var(--border);
-  box-shadow:inset 0 4px 28px var(--shadow);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1px;overflow:hidden;transition:background .35s;
-}
-.fare-lbl{
-  font-size:8px;font-weight:700;letter-spacing:4px;
-  color:var(--text-d);text-transform:uppercase;
-}
-.fare-val{
-  font-family:'Orbitron',monospace;font-weight:900;
-  font-size:clamp(22px,6.2vw,30px);
-  color:var(--amber);letter-spacing:-1px;line-height:1;
-  text-shadow:0 0 20px var(--amber-g);transition:color .3s;
-  white-space:nowrap;
-}
-.fare-val.ding{animation:ding .7s ease-out}
-@keyframes ding{
-  0%{filter:brightness(1);text-shadow:0 0 20px var(--amber-g)}
-  25%{filter:brightness(2.6);text-shadow:0 0 44px var(--amber)}
-  100%{filter:brightness(1);text-shadow:0 0 20px var(--amber-g)}
-}
-.ring-spd{
-  font-family:'Orbitron',monospace;font-size:11px;
-  font-weight:400;color:var(--text-m);margin-top:2px;
-}
-.status-row{display:flex;align-items:center;gap:5px;margin-top:5px}
-.sdot{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--text-d);flex-shrink:0;transition:background .3s,box-shadow .3s;
-}
-.sdot.run{background:var(--green);box-shadow:0 0 7px var(--green);animation:bl 1.2s ease-in-out infinite}
-.sdot.wait{background:var(--amber);box-shadow:0 0 7px var(--amber);animation:bl .7s ease-in-out infinite}
-.sdot.end{background:var(--amber);box-shadow:0 0 7px var(--amber)}
-@keyframes bl{0%,100%{opacity:1}50%{opacity:.1}}
-.stxt{
-  font-size:9px;font-weight:700;letter-spacing:3px;
-  color:var(--text-d);text-transform:uppercase;transition:color .3s;
-}
-.stxt.run{color:var(--green)}.stxt.wait{color:var(--amber)}.stxt.end{color:var(--amber)}
-
-/* 4-stat row */
-.stats4{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
-  flex-shrink:0;padding:6px 0 10px;
-}
-.sc{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;padding:9px 4px;text-align:center;
-  backdrop-filter:blur(8px);transition:border-color .2s,background .3s;
-}
-.sc.lit{border-color:var(--amber-d);background:var(--amber-s)}
-.sl{font-size:7px;font-weight:700;letter-spacing:1.5px;color:var(--text-d);text-transform:uppercase;margin-bottom:4px}
-.sv{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:var(--text)}
-.sc.lit .sv{color:var(--amber)}
-
-.gps-err{
-  display:none;padding:10px 14px;
-  background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.22);
-  border-radius:10px;font-size:12px;color:var(--red);
-  text-align:center;line-height:1.5;margin-bottom:8px;flex-shrink:0;
-}
-.done-bnr{
-  display:none;text-align:center;font-size:10px;font-weight:700;
-  letter-spacing:4px;color:var(--green);text-transform:uppercase;
-  padding-bottom:8px;flex-shrink:0;
-}
-.btn-area{flex-shrink:0;padding-bottom:10px;display:flex;flex-direction:column;gap:9px}
-
-/* === TAXI — HISTORY ============================================ */
-.trip-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  padding:13px 15px;display:flex;justify-content:space-between;align-items:center;
-  cursor:pointer;backdrop-filter:blur(8px);margin-bottom:9px;
-  transition:border-color .18s,background .18s,transform .1s;
-}
-.trip-card:active{transform:scale(.98);border-color:var(--amber-d);background:var(--amber-s)}
-.tc-l{display:flex;flex-direction:column;gap:4px}
-.tc-date{font-size:13px;font-weight:600;color:var(--text)}
-.tc-meta{font-size:11px;color:var(--text-m)}
-.tc-fare{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--amber)}
-.danger-btn{
-  background:none;border:1px solid rgba(255,61,90,.25);color:var(--red);
-  border-radius:12px;padding:12px;font-family:'Barlow',sans-serif;font-size:13px;
-  font-weight:500;cursor:pointer;width:100%;margin:12px 0 4px;transition:background .2s;
-}
-.danger-btn:active{background:rgba(255,61,90,.07)}
-
-/* === TAXI — EARNINGS =========================================== */
-.e-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:12px}
-.e-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:16px;
-  padding:18px 14px;text-align:center;backdrop-filter:blur(8px);transition:background .35s;
-}
-.e-card.wide{grid-column:1/-1;border-color:var(--amber-d);background:var(--amber-s)}
-.e-lbl{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--text-d);text-transform:uppercase;margin-bottom:8px}
-.e-val{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--amber)}
-.e-sub{font-size:11px;color:var(--text-m);margin-top:4px}
-.stat-list{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;overflow:hidden;backdrop-filter:blur(8px);
-}
-.sr{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--border)}
-.sr:last-child{border-bottom:none}
-.sr-l{font-size:13px;font-weight:500;color:var(--text-m)}
-.sr-v{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--text)}
-
-/* === TAXI — ESTIMATE =========================================== */
-.est-form{display:flex;flex-direction:column;gap:13px}
-.fg{display:flex;flex-direction:column;gap:6px}
-.fl{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-d);text-transform:uppercase}
-.ori-row{display:flex;gap:8px}
-.ori-row .fi{flex:1}
-.loc-btn{
-  flex-shrink:0;background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;color:var(--text-m);padding:0 14px;font-size:17px;
-  cursor:pointer;display:flex;align-items:center;
-  transition:border-color .2s,color .2s;
-}
-.loc-btn:active{border-color:var(--amber);color:var(--amber)}
-.est-res-box{
-  display:none;background:var(--amber-s);border:1px solid var(--amber-d);
-  border-radius:16px;padding:22px;text-align:center;backdrop-filter:blur(8px);
-}
-.est-res-box.show{display:block}
-.est-dist-txt{font-size:12px;color:var(--text-m);margin-bottom:6px}
-.est-fare-big{font-family:'Orbitron',monospace;font-size:40px;font-weight:900;color:var(--amber)}
-.est-range-txt{font-size:11px;color:var(--text-m);margin-top:6px}
-.est-err{
-  display:none;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.22);
-  border-radius:11px;padding:11px;font-size:12px;color:var(--red);text-align:center;
-}
-.est-err.show{display:block}
-
-/* === RECEIPT OVERLAY =========================================== */
-.rec-hdr{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:5px;color:var(--amber);text-align:center;margin-bottom:3px}
-.rec-date{font-size:12px;color:var(--text-m);text-align:center;margin-bottom:14px}
-.rec-div{height:1px;background:var(--border);margin:11px 0}
-.rec-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
-.rrl{font-size:13px;font-weight:500;color:var(--text-m)}
-.rrv{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--text)}
-.rec-row.tot .rrl{color:var(--text);font-weight:700;font-size:15px}
-.rec-row.tot .rrv{color:var(--amber);font-size:22px}
-.rec-btns{display:flex;gap:9px;margin-top:20px}
-.rec-btns .btn{padding:13px;flex:1}
-
-/* === DRIVE — LIVE TAB ========================================== */
-.dt-idle{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:22px;padding:0 18px 16px;position:relative;z-index:1;
-}
-.idle-hero{
-  width:90px;height:90px;border-radius:50%;
-  border:1px solid var(--cyan-d);background:var(--cyan-s);
-  display:flex;align-items:center;justify-content:center;font-size:40px;
-  box-shadow:0 0 40px var(--cyan-g);
-}
-.idle-title{
-  font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
-  color:var(--text);letter-spacing:1px;text-align:center;
-}
-.idle-desc{font-size:13px;color:var(--text-m);text-align:center;line-height:1.6;max-width:270px}
-.last-drive-card{
-  width:100%;background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;padding:14px 16px;backdrop-filter:blur(8px);display:none;
-}
-.ld-lbl{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--text-d);text-transform:uppercase;margin-bottom:10px}
-.ld-stats{display:flex;justify-content:space-around}
-.ld-s{text-align:center}
-.ld-v{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--text)}
-.ld-sub{font-size:10px;color:var(--text-m);margin-top:2px}
-
-/* Live recording view */
-.dt-rec{position:absolute;inset:0;display:none;flex-direction:column}
-.dt-rec.active{display:flex}
-#liveMap{flex:1;min-height:0;z-index:1}
-
-.live-hud{
-  position:relative;z-index:10;flex-shrink:0;
-  background:var(--nav);border-top:1px solid var(--border);
-  backdrop-filter:blur(24px);
-  padding:14px 18px max(env(safe-area-inset-bottom),12px);
-}
-.hud-main{display:flex;align-items:center;gap:0;margin-bottom:12px}
-.hud-spd-block{
-  display:flex;align-items:baseline;gap:3px;
-  padding-right:18px;border-right:1px solid var(--border);margin-right:18px;
-}
-.hud-spd{
-  font-family:'Orbitron',monospace;font-size:44px;font-weight:900;
-  color:var(--cyan);line-height:1;
-  text-shadow:0 0 20px var(--cyan-g);
-}
-.hud-unit{font-size:13px;font-weight:600;color:var(--text-m);letter-spacing:1px;align-self:flex-end;padding-bottom:4px}
-.hud-metrics{display:flex;flex:1;gap:0}
-.hm{flex:1;text-align:center;border-left:1px solid var(--border)}
-.hm:first-child{border-left:none}
-.hm-v{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text)}
-.hm-l{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--text-d);text-transform:uppercase;margin-top:3px}
-
-/* Speed indicator bar */
-.spd-bar-wrap{height:3px;border-radius:2px;background:var(--bg3);margin-bottom:12px;overflow:hidden}
-.spd-bar{height:100%;border-radius:2px;width:0%;transition:width .4s ease,background .4s ease}
-
-/* Leaflet overrides */
-.leaflet-container{font-family:'Barlow',sans-serif!important;background:var(--bg)!important}
-.leaflet-control-attribution{font-size:8px!important}
-
-/* Speed legend on map */
-.spd-legend{
-  background:var(--nav)!important;border:1px solid var(--border)!important;
-  border-radius:10px;padding:8px 10px;backdrop-filter:blur(12px);
-}
-.sl-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:10px;color:var(--text-m);font-weight:500}
-.sl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-
-/* Position markers */
-.pos-dot{
-  width:16px;height:16px;border-radius:50%;border:3px solid #fff;
-  box-shadow:0 0 12px rgba(0,0,0,.5);
-}
-.top-spd-pin{
-  width:28px;height:28px;border-radius:50%;
-  border:3px solid #fff;box-shadow:0 0 16px rgba(213,0,0,.6);
-  background:linear-gradient(135deg,#d50000,#ff6d00);
-  display:flex;align-items:center;justify-content:center;font-size:13px;
-}
-.top-acc-pin{
-  width:28px;height:28px;border-radius:50%;
-  border:3px solid #fff;box-shadow:0 0 16px rgba(0,100,255,.5);
-  background:linear-gradient(135deg,#0064ff,#00c8ff);
-  display:flex;align-items:center;justify-content:center;font-size:13px;
-}
-.start-pin{width:12px;height:12px;border-radius:50%;background:#00e676;border:2px solid #fff}
-.end-pin{width:12px;height:12px;border-radius:50%;background:#ff3d5a;border:2px solid #fff}
-
-/* === DRIVE — DRIVES LIST ======================================= */
-.drive-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:16px;
-  padding:14px 16px;cursor:pointer;backdrop-filter:blur(8px);margin-bottom:9px;
-  transition:border-color .18s,background .18s,transform .1s;
-}
-.drive-card:active{transform:scale(.98);border-color:var(--cyan-d);background:var(--cyan-s)}
-.dc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.dc-date{font-size:13px;font-weight:600;color:var(--text)}
-.dc-dur{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--cyan)}
-.dc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
-.dc-s{text-align:center;border-left:1px solid var(--border)}
-.dc-s:first-child{border-left:none;text-align:left}
-.dc-v{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--text)}
-.dc-l{font-size:10px;color:var(--text-m);margin-top:2px}
-
-/* === DRIVE — STATS ============================================= */
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px}
-.sg-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;padding:18px 15px;backdrop-filter:blur(8px);
-  transition:background .35s;
-}
-.sg-card.wide{grid-column:1/-1}
-.sg-card.hl{border-color:var(--cyan-d);background:var(--cyan-s)}
-.sg-card.hl .sg-v{color:var(--cyan)}
-.sg-lbl{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--text-d);text-transform:uppercase;margin-bottom:8px}
-.sg-v{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--text)}
-.sg-sub{font-size:11px;color:var(--text-m);margin-top:4px}
-.sg-loc{
-  display:inline-flex;align-items:center;gap:5px;margin-top:10px;
-  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
-  padding:5px 10px;font-size:11px;font-weight:600;
-  color:var(--cyan);cursor:pointer;transition:border-color .2s;
-}
-.sg-loc:active{border-color:var(--cyan-d)}
-
-/* === DRIVE DETAIL MAP OVERLAY ================================== */
-.map-sheet{
-  width:100%;background:var(--bg2);border-radius:22px 22px 0 0;
-  border-top:1px solid var(--border);
-  height:82dvh;display:flex;flex-direction:column;
-  transform:translateY(100%);
-  transition:transform .34s cubic-bezier(.32,.72,0,1),background .35s;
-  overflow:hidden;
-}
-.ov.open .map-sheet{transform:translateY(0)}
-.map-sh-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px 8px;flex-shrink:0;
-  border-bottom:1px solid var(--border);
-}
-.map-sh-title{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:4px;color:var(--text-m);text-transform:uppercase}
-.close-x{
-  width:30px;height:30px;border-radius:50%;
-  background:var(--surface);border:1px solid var(--border);
-  color:var(--text-m);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;
-}
-#detailMapEl{flex:1;min-height:0}
-.map-sh-stats{
-  display:flex;flex-shrink:0;
-  padding:10px 0;border-top:1px solid var(--border);
-  padding-bottom:max(env(safe-area-inset-bottom),12px);
-}
-.ms{flex:1;text-align:center;border-left:1px solid var(--border)}
-.ms:first-child{border-left:none}
-.ms-v{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text)}
-.ms-l{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--text-d);text-transform:uppercase;margin-top:2px}
-
-/* ── Performance timer overlay ── */
-.perf-strip{
-  position:absolute;top:0;left:0;right:0;z-index:600;
-  background:var(--nav);border-bottom:1px solid var(--border);
-  backdrop-filter:blur(16px);
-  display:flex;align-items:center;justify-content:center;gap:14px;
-  padding:10px 16px;
-  transform:translateY(-100%);opacity:0;
-  transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s;
-  pointer-events:none;
-}
-.perf-strip.active{transform:translateY(0);opacity:1}
-.perf-arm{
-  font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
-  color:var(--cyan);padding:4px 10px;border-radius:20px;
-  background:var(--cyan-s);border:1px solid var(--cyan-d);
-}
-.perf-label{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--text-m);text-transform:uppercase}
-.perf-time{
-  font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
-  color:var(--cyan);text-shadow:0 0 14px var(--cyan-g);letter-spacing:-1px;
-}
-.perf-done{color:var(--green);text-shadow:0 0 14px rgba(0,230,118,.3)}
-
-/* Result flash modal */
-.perf-result{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-54%) scale(.8);
-  z-index:700;background:var(--bg2);border:1px solid var(--cyan-d);
-  border-radius:22px;padding:26px 32px;text-align:center;
-  box-shadow:0 8px 40px rgba(0,0,0,.7);
-  opacity:0;transition:opacity .25s,transform .25s cubic-bezier(.22,1,.36,1);
-  pointer-events:none;min-width:220px;
-}
-.perf-result.show{opacity:1;transform:translate(-50%,-54%) scale(1);pointer-events:all}
-.pr-label{font-size:9px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--text-d);margin-bottom:8px}
-.pr-time{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--cyan);line-height:1;text-shadow:0 0 20px var(--cyan-g)}
-.pr-sub{font-size:12px;color:var(--text-m);margin-top:6px}
-.pr-pb{font-size:11px;font-weight:700;color:var(--green);letter-spacing:2px;margin-top:5px}
-.pr-dismiss{margin-top:18px;background:none;border:1px solid var(--border);border-radius:10px;
-  padding:9px 20px;color:var(--text-m);font-family:'Orbitron',monospace;font-size:10px;
-  letter-spacing:3px;cursor:pointer;transition:border-color .2s}
-.pr-dismiss:active{border-color:var(--cyan)}
-
-/* Hard brake pin */
-.brake-pin{
-  width:22px;height:22px;border-radius:50%;
-  background:linear-gradient(135deg,#ff6d00,#d50000);
-  border:2px solid #fff;box-shadow:0 0 12px rgba(213,0,0,.5);
-  display:flex;align-items:center;justify-content:center;font-size:11px;
+.speed-mode-badge span.mode-road {
+  border-color: var(--cyan); color: var(--cyan);
+  background: var(--cyan-dim);
 }
 
-/* Personal bests tab */
-.pb-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
-.pb-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:16px;padding:16px;backdrop-filter:blur(10px);
-  display:flex;align-items:center;gap:14px;
-  transition:background .35s;
+.speedo-wrap {
+  display: flex; justify-content: center; align-items: center;
+  padding: 8px 0 4px;
+  position: relative;
 }
-.pb-card.gold{border-color:rgba(255,200,0,.4);background:rgba(255,200,0,.04)}
-.pb-icon{font-size:24px;width:44px;height:44px;border-radius:12px;
-  background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pb-info{flex:1;min-width:0}
-.pb-name{font-size:12px;font-weight:600;color:var(--text-m);letter-spacing:.5px;margin-bottom:4px}
-.pb-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--text)}
-.pb-card.gold .pb-val{color:#ffd600}
-.pb-date{font-size:10px;color:var(--text-d);margin-top:3px}
-.pb-unset{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text-d)}
-.pb-loc{display:inline-flex;align-items:center;gap:4px;margin-top:6px;
-  background:var(--bg3);border:1px solid var(--border);border-radius:7px;
-  padding:3px 8px;font-size:10px;font-weight:600;color:var(--cyan);cursor:pointer}
-
-/* Snap-to-position button */
-.snap-btn{
-  position:absolute;bottom:18px;right:12px;z-index:500;
-  width:42px;height:42px;border-radius:50%;
-  background:var(--nav);border:1px solid var(--border);
-  color:var(--cyan);font-size:18px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;backdrop-filter:blur(12px);
-  box-shadow:0 2px 12px rgba(0,0,0,.4);
-  transition:background .2s,transform .15s;
+.speedo-wrap::before {
+  content: ''; position: absolute;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, rgba(255,61,0,0.06), transparent 70%);
+  pointer-events: none;
 }
-.snap-btn:active{transform:scale(.9);background:var(--cyan-s);}
+#speedo-canvas { position: relative; z-index: 1; }
 
-/* Speed zone colors reference */
-/* green #00c853 | yellow #ffd600 | orange #ff6d00 | red #d50000 | purple #aa00ff */
+/* ── Mini gauges row ── */
+.mini-gauges {
+  display: flex; gap: 10px; padding: 0 14px 10px;
+}
+.mini-card {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; position: relative; overflow: hidden;
+}
+.mini-card::before {
+  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+}
+.mini-card-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--text-2);
+}
+#gforce-canvas, #heading-canvas { border-radius: 50%; }
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; padding: 0 14px 10px;
+}
+.stat-cell {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 8px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.stat-cell::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--border);
+}
+.stat-cell.accent-cell::after { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.stat-cell.cyan-cell::after { background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+
+.stat-cell .stat-val {
+  font-family: var(--font-d); font-size: 15px; font-weight: 700;
+  color: var(--white); line-height: 1;
+  letter-spacing: -0.02em;
+}
+.stat-cell .stat-lbl {
+  font-size: 8px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-2); margin-top: 4px;
+}
+
+/* ── Unit toggle ── */
+.unit-toggle {
+  display: flex; justify-content: center; gap: 0; margin: 0 14px 8px;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+}
+.unit-btn {
+  flex: 1; padding: 7px; font-family: var(--font-ui); font-size: 11px;
+  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-2); background: var(--surface); transition: all 0.2s;
+  border-right: 1px solid var(--border);
+}
+.unit-btn:last-child { border-right: none; }
+.unit-btn.active { background: var(--accent); color: var(--white); }
+
+/* ═══════ ──────────────────── ═══════
+   SCREEN 2: MAP
+═══════ ──────────────────── ═══════ */
+#screen-map { position: relative; }
+#map-container {
+  position: absolute; inset: 0;
+}
+#map { width: 100%; height: 100%; }
+
+.map-overlay {
+  position: absolute; top: 12px; left: 12px; right: 12px;
+  z-index: 1000; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+}
+.map-speed-box {
+  background: rgba(5,5,12,0.85); border: 1px solid var(--accent);
+  border-radius: 10px; padding: 10px 16px; text-align: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 20px rgba(255,61,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.map-speed-val {
+  font-family: var(--font-d); font-size: 36px; font-weight: 900;
+  color: var(--white); line-height: 1; letter-spacing: -0.02em;
+}
+.map-speed-unit { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: var(--accent); }
+.map-stats-box {
+  background: rgba(5,5,12,0.85); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+  backdrop-filter: blur(12px);
+}
+.map-stat-row { display: flex; align-items: center; gap: 10px; }
+.map-stat-row .lbl { font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); width: 36px; }
+.map-stat-row .val { font-family: var(--font-d); font-size: 13px; font-weight: 700; color: var(--white); }
+
+.map-controls {
+  position: absolute; bottom: 16px; right: 12px;
+  z-index: 1000; display: flex; flex-direction: column; gap: 8px;
+}
+.map-ctrl-btn {
+  width: 42px; height: 42px; border-radius: 8px;
+  background: rgba(5,5,12,0.9); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-2); backdrop-filter: blur(12px);
+  transition: all 0.2s;
+}
+.map-ctrl-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.map-ctrl-btn svg { width: 18px; height: 18px; }
+
+/* Leaflet dark overrides */
+.leaflet-tile-pane { filter: brightness(0.85) saturate(0.6); }
+.leaflet-control-attribution { display: none !important; }
+.leaflet-control-zoom { display: none !important; }
+
+/* Custom map marker */
+.apex-marker {
+  width: 20px; height: 20px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* ═══════ ──────────────────── ═══════
+   SCREEN 3: LAPS
+═══════ ──────────────────── ═══════ */
+#screen-laps {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 16px 14px; display: flex; flex-direction: column; gap: 14px;
+}
+
+.lap-timer-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px 20px 20px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.lap-timer-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.lap-timer-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-2); margin-bottom: 8px;
+}
+#lap-display {
+  font-family: var(--font-d); font-size: 52px; font-weight: 900;
+  color: var(--white); letter-spacing: 0.05em; line-height: 1;
+  text-shadow: 0 0 30px rgba(255,255,255,0.1);
+}
+#lap-display.running { color: var(--green); text-shadow: 0 0 30px rgba(0,230,118,0.2); }
+.lap-sub {
+  font-family: var(--font-d); font-size: 14px; color: var(--text-2);
+  letter-spacing: 0.08em; margin-top: 8px;
+}
+
+.lap-controls {
+  display: flex; gap: 10px; margin-top: 20px;
+}
+.lap-btn {
+  flex: 1; padding: 14px; border-radius: 10px; font-family: var(--font-ui);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-2); transition: all 0.2s;
+}
+.lap-btn.primary {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; box-shadow: 0 0 20px rgba(255,61,0,0.3);
+}
+.lap-btn.primary:active { transform: scale(0.97); }
+.lap-btn.secondary { background: var(--surface-3); color: var(--white); border-color: var(--border); }
+.lap-btn:disabled { opacity: 0.3; pointer-events: none; }
+
+.laps-list-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 2px;
+}
+.laps-list-header span {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--text-2);
+}
+
+#laps-list { display: flex; flex-direction: column; gap: 6px; }
+.lap-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  animation: slide-in 0.3s ease;
+}
+@keyframes slide-in { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+.lap-row.best { border-color: var(--green); background: rgba(0,230,118,0.05); }
+.lap-row.worst { border-color: rgba(255,61,0,0.3); }
+.lap-num {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-2); width: 36px;
+}
+.lap-time {
+  font-family: var(--font-d); font-size: 18px; font-weight: 700;
+  color: var(--white); flex: 1;
+}
+.lap-row.best .lap-time { color: var(--green); }
+.lap-delta {
+  font-family: var(--font-d); font-size: 12px; font-weight: 600;
+  color: var(--text-2);
+}
+.lap-delta.fast { color: var(--green); }
+.lap-delta.slow { color: var(--accent); }
+.lap-badge {
+  font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+}
+.lap-badge.best { background: rgba(0,230,118,0.15); color: var(--green); }
+.lap-badge.worst { background: rgba(255,61,0,0.15); color: var(--accent); }
+
+/* ═══════ ──────────────────── ═══════
+   SCREEN 4: DATA / STATS
+═══════ ──────────────────── ═══════ */
+#screen-data {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 16px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+
+.data-section-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-2);
+  padding: 6px 2px 2px; border-bottom: 1px solid var(--border);
+}
+
+.data-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  position: relative;
+}
+.data-card-inner { padding: 16px 18px; }
+
+/* 0-60 card */
+.sprint-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px; position: relative; overflow: hidden;
+}
+.sprint-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(to right, transparent, var(--cyan), transparent);
+}
+.sprint-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.sprint-title { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-2); }
+.sprint-status {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 3px 10px; border-radius: 3px;
+  text-transform: uppercase;
+  background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan);
+}
+.sprint-status.active { background: rgba(0,230,118,0.1); color: var(--green); border-color: var(--green); animation: blink 0.8s infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.sprint-status.done { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); animation: none; }
+
+.sprint-time-display {
+  text-align: center; padding: 16px 0;
+}
+.sprint-time-val {
+  font-family: var(--font-d); font-size: 56px; font-weight: 900;
+  color: var(--white); line-height: 1; letter-spacing: -0.02em;
+}
+.sprint-time-val.done { color: var(--cyan); text-shadow: 0 0 30px var(--cyan-glow); }
+.sprint-time-unit {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+  color: var(--text-2); text-transform: uppercase; margin-top: 6px;
+}
+
+.sprint-progress-wrap { margin: 4px 0 16px; }
+.sprint-track {
+  height: 4px; background: var(--surface-3); border-radius: 2px; overflow: hidden;
+}
+.sprint-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  background: linear-gradient(to right, var(--cyan), var(--accent));
+  transition: width 0.15s ease;
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+
+.sprint-milestones {
+  display: flex; justify-content: space-between; margin-top: 6px;
+}
+.sprint-ms {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.sprint-ms .ms-dot {
+  width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text-3);
+  transition: all 0.3s;
+}
+.sprint-ms .ms-dot.reached { border-color: var(--cyan); background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+.sprint-ms .ms-label {
+  font-size: 8px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-3);
+}
+
+.sprint-reset-btn {
+  width: 100%; padding: 10px; border-radius: 8px; font-family: var(--font-ui);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2);
+}
+
+/* Stat rows */
+.stat-rows { display: flex; flex-direction: column; }
+.stat-row {
+  display: flex; align-items: center; padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; }
+.stat-row-icon svg { width: 16px; height: 16px; }
+.stat-row-info { flex: 1; }
+.stat-row-info .r-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+.stat-row-info .r-value { font-family: var(--font-d); font-size: 20px; font-weight: 700; color: var(--white); line-height: 1.2; }
+.stat-row-info .r-sub { font-size: 10px; color: var(--text-2); margin-top: 2px; }
+
+/* Peak G visual */
+.g-bar-wrap { margin-top: 8px; }
+.g-bar-track { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.g-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.g-bar-fill.lat { background: linear-gradient(to right, var(--cyan), #0080ff); }
+.g-bar-fill.lon { background: linear-gradient(to right, var(--accent), #ff8800); }
+
+/* Driving score */
+.score-ring-wrap { display: flex; justify-content: center; padding: 16px 0 8px; }
+.score-info { text-align: center; }
+.score-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-2); margin-bottom: 4px; }
+.score-grade { font-family: var(--font-d); font-size: 48px; font-weight: 900; color: var(--accent); }
+
+/* ═══════ PERMISSION SCREEN ═══════ */
+#perm-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 40px 32px;
+  text-align: center; gap: 20px;
+}
+.perm-logo {
+  font-family: var(--font-d); font-size: 28px; font-weight: 900;
+  letter-spacing: 0.2em; margin-bottom: 12px;
+}
+.perm-logo span { color: var(--accent); }
+.perm-title { font-size: 20px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+.perm-desc { font-size: 15px; color: var(--text-2); line-height: 1.6; max-width: 300px; }
+.perm-btn {
+  width: 100%; max-width: 280px; padding: 16px;
+  border-radius: 12px; font-family: var(--font-ui); font-size: 14px;
+  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  background: var(--accent); color: #fff; border: none;
+  box-shadow: 0 0 30px rgba(255,61,0,0.3);
+  margin-top: 8px;
+}
+.perm-skip { font-size: 12px; color: var(--text-2); margin-top: 6px; text-decoration: underline; cursor: pointer; }
+
+/* ═══════ FLASH EFFECT ═══════ */
+#flash-overlay {
+  position: fixed; inset: 0; z-index: 9997; pointer-events: none;
+  background: rgba(255,61,0,0.15); opacity: 0;
+  transition: opacity 0.1s;
+}
+#flash-overlay.flash { opacity: 1; transition: none; }
+
+/* ═══════ TOP SPEED TOAST ═══════ */
+#toast {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+  z-index: 9996; pointer-events: none;
+  background: var(--surface); border: 1px solid var(--accent);
+  border-radius: 10px; padding: 10px 20px; text-align: center;
+  box-shadow: 0 0 20px var(--accent-dim);
+  opacity: 0; transition: opacity 0.3s, transform 0.3s;
+  transform: translateX(-50%) translateY(-10px);
+  min-width: 200px;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast .toast-line1 { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
+#toast .toast-line2 { font-family: var(--font-d); font-size: 22px; font-weight: 900; color: var(--white); }
+
+/* Scrollbar hidden */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+/* Leaflet custom controls */
+.leaflet-control-attribution a { display: none; }
 </style>
 </head>
 <body>
 
-<!-- ===== HOME ================================================== -->
-<div id="sHome" class="screen">
-  <div class="home-top">
-    <div class="home-wordmark">
-      <div class="home-wordmark-main">TaxiMeter</div>
-      <div class="home-wordmark-sub">Choose Mode</div>
-    </div>
-    <button class="home-theme" id="homeTheme">☀</button>
+<!-- Permission Screen -->
+<div id="perm-screen">
+  <div>
+    <div class="perm-logo">APEX<span>.</span></div>
+    <div class="perm-title">Racing Telemetry</div>
   </div>
-  <div class="home-cards">
-    <div class="mode-card taxi" id="cardTaxi">
-      <div class="mc-row">
-        <div class="mc-icon-wrap">🚖</div>
-        <div class="mc-titles">
-          <div class="mc-title">Taxi Mode</div>
-          <div class="mc-subtitle">Professional Meter</div>
-        </div>
-      </div>
-      <div class="mc-desc">GPS fare meter with live distance tracking, waiting time charges, trip history, earnings dashboard and postcode fare estimator.</div>
-      <div class="mc-cta">
-        <span class="mc-tag">Fare Meter</span>
-        <span class="mc-arrow">Enter →</span>
-      </div>
-    </div>
-    <div class="mode-card drive" id="cardDrive">
-      <div class="mc-row">
-        <div class="mc-icon-wrap">🗺</div>
-        <div class="mc-titles">
-          <div class="mc-title">Drive Tracker</div>
-          <div class="mc-subtitle">Personal Use</div>
-        </div>
-      </div>
-      <div class="mc-desc">Record your journeys on a live speed-coloured map. Track top speed, max acceleration, total distance and time driven across all journeys.</div>
-      <div class="mc-cta">
-        <span class="mc-tag">Live Map</span>
-        <span class="mc-arrow">Enter →</span>
-      </div>
-    </div>
-  </div>
+  <div class="perm-desc">To track your performance, APEX needs access to your location and motion sensors.</div>
+  <button class="perm-btn" id="perm-btn">Enable Sensors</button>
+  <span class="perm-skip" id="perm-skip">Continue without sensors</span>
 </div>
 
-<!-- ===== TAXI APP ============================================== -->
-<div id="sTaxi" class="screen hidden">
-  <div class="app-bar">
-    <button class="back-btn" id="taxiBack">←</button>
-    <div class="ab-title">Taxi Mode</div>
-    <div class="ab-right">
-      <button class="icon-btn" id="taxiMapBtn" style="display:none">🗺</button>
-      <button class="icon-btn" id="taxiSettBtn">⚙</button>
+<!-- Flash overlay -->
+<div id="flash-overlay"></div>
+
+<!-- Toast -->
+<div id="toast">
+  <div class="toast-line1">🏆 New Top Speed</div>
+  <div class="toast-line2" id="toast-speed">—</div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <!-- Header -->
+  <div id="header">
+    <div class="header-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="14,2 26,24 2,24" fill="none" stroke="#FF3D00" stroke-width="2"/>
+          <polygon points="14,8 21,22 7,22" fill="#FF3D00" opacity="0.4"/>
+          <line x1="14" y1="2" x2="14" y2="24" stroke="#FF3D00" stroke-width="1.5" opacity="0.6"/>
+        </svg>
+      </div>
+      <span class="logo-text">APE<span>X</span></span>
+    </div>
+    <div class="header-status">
+      <div class="gps-badge" id="gps-badge">
+        <div class="gps-dot"></div>
+        <span id="gps-label">NO GPS</span>
+      </div>
+      <div class="header-clock" id="header-clock">--:--</div>
     </div>
   </div>
-  <div class="tabs-wrap">
 
-    <!-- METER -->
-    <div class="tab active" id="tMeter">
-      <div class="meter-area">
-        <div class="ring-wrap" id="ringWrap">
-          <svg class="ring-svg" viewBox="0 0 260 260" overflow="visible">
-            <g id="tickG"></g>
-            <circle class="r-bg" cx="130" cy="130" r="120"/>
-            <circle class="r-arc" cx="130" cy="130" r="120" id="rArc"/>
+  <!-- Screens -->
+  <div id="screens">
+
+    <!-- GAUGE SCREEN -->
+    <div class="screen active" id="screen-gauge">
+      <div class="speed-mode-badge">
+        <span id="mode-badge">STANDBY</span>
+      </div>
+      <div class="speedo-wrap">
+        <canvas id="speedo-canvas"></canvas>
+      </div>
+      <div class="mini-gauges">
+        <div class="mini-card">
+          <div class="mini-card-label">G-Force</div>
+          <canvas id="gforce-canvas"></canvas>
+          <div style="font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--white)" id="g-readout">0.00G</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-label">Heading</div>
+          <canvas id="heading-canvas"></canvas>
+          <div style="font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--white)" id="heading-readout">---°</div>
+        </div>
+      </div>
+      <div class="stats-strip">
+        <div class="stat-cell accent-cell">
+          <div class="stat-val" id="stat-top">0</div>
+          <div class="stat-lbl">Top</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" id="stat-avg">0</div>
+          <div class="stat-lbl">Avg</div>
+        </div>
+        <div class="stat-cell cyan-cell">
+          <div class="stat-val" id="stat-dist">0.0</div>
+          <div class="stat-lbl">Dist</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" id="stat-time">0:00</div>
+          <div class="stat-lbl">Time</div>
+        </div>
+      </div>
+      <div class="unit-toggle">
+        <button class="unit-btn active" id="btn-mph" onclick="setUnit('mph')">MPH</button>
+        <button class="unit-btn" id="btn-kph" onclick="setUnit('kph')">KPH</button>
+      </div>
+    </div>
+
+    <!-- MAP SCREEN -->
+    <div class="screen" id="screen-map">
+      <div id="map-container">
+        <div id="map"></div>
+      </div>
+      <div class="map-overlay">
+        <div class="map-speed-box">
+          <div class="map-speed-val" id="map-speed-val">0</div>
+          <div class="map-speed-unit" id="map-speed-unit">MPH</div>
+        </div>
+        <div class="map-stats-box">
+          <div class="map-stat-row">
+            <span class="lbl">TOP</span>
+            <span class="val" id="map-top">0</span>
+          </div>
+          <div class="map-stat-row">
+            <span class="lbl">AVG</span>
+            <span class="val" id="map-avg">0</span>
+          </div>
+          <div class="map-stat-row">
+            <span class="lbl">DIST</span>
+            <span class="val" id="map-dist">0.0</span>
+          </div>
+        </div>
+      </div>
+      <div class="map-controls">
+        <button class="map-ctrl-btn on" id="map-follow-btn" onclick="toggleFollow()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
           </svg>
-          <div class="ring-face">
-            <div class="fare-lbl">Fare</div>
-            <div class="fare-val" id="fareEl">£0.00</div>
-            <div class="ring-spd" id="taxiSpdEl">— mph</div>
-            <div class="status-row">
-              <div class="sdot" id="sDot"></div>
-              <div class="stxt" id="sTxt">Ready</div>
+        </button>
+        <button class="map-ctrl-btn" onclick="clearTrail()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- LAPS SCREEN -->
+    <div class="screen" id="screen-laps">
+      <div class="lap-timer-card">
+        <div class="lap-timer-label">Lap Timer</div>
+        <div id="lap-display">00:00.000</div>
+        <div class="lap-sub" id="lap-sub">— Press START to begin —</div>
+        <div class="lap-controls">
+          <button class="lap-btn primary" id="lap-start-btn" onclick="lapStartStop()">START</button>
+          <button class="lap-btn secondary" id="lap-split-btn" onclick="lapSplit()" disabled>LAP</button>
+          <button class="lap-btn" id="lap-reset-btn" onclick="lapReset()" disabled>RESET</button>
+        </div>
+      </div>
+      <div class="laps-list-header">
+        <span id="lap-count-label">No laps recorded</span>
+        <span id="best-lap-label"></span>
+      </div>
+      <div id="laps-list"></div>
+    </div>
+
+    <!-- DATA SCREEN -->
+    <div class="screen" id="screen-data">
+
+      <!-- 0-60 Card -->
+      <div class="sprint-card">
+        <div class="sprint-header">
+          <span class="sprint-title">0 – 60 MPH Sprint</span>
+          <span class="sprint-status" id="sprint-status">ARMED</span>
+        </div>
+        <div class="sprint-time-display">
+          <div class="sprint-time-val" id="sprint-val">—</div>
+          <div class="sprint-time-unit">seconds</div>
+        </div>
+        <div class="sprint-progress-wrap">
+          <div class="sprint-track"><div class="sprint-fill" id="sprint-fill"></div></div>
+          <div class="sprint-milestones">
+            <div class="sprint-ms"><div class="ms-dot" id="ms-0"></div><div class="ms-label">0</div></div>
+            <div class="sprint-ms"><div class="ms-dot" id="ms-30"></div><div class="ms-label">30</div></div>
+            <div class="sprint-ms"><div class="ms-dot" id="ms-45"></div><div class="ms-label">45</div></div>
+            <div class="sprint-ms"><div class="ms-dot" id="ms-60"></div><div class="ms-label">60</div></div>
+          </div>
+        </div>
+        <button class="sprint-reset-btn" onclick="resetSprint()">Reset 0–60</button>
+      </div>
+
+      <!-- Session Stats -->
+      <div class="data-section-title">Session Performance</div>
+      <div class="data-card">
+        <div class="stat-rows">
+          <div class="stat-row">
+            <div class="stat-row-icon" style="background:rgba(255,61,0,0.12)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF3D00" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div class="stat-row-info">
+              <div class="r-label">Top Speed</div>
+              <div class="r-value" id="data-top">— <span style="font-size:14px;color:var(--text-2)" id="data-top-unit">MPH</span></div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-row-icon" style="background:rgba(0,207,255,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00CFFF" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="stat-row-info">
+              <div class="r-label">Avg Speed (moving)</div>
+              <div class="r-value" id="data-avg">— <span style="font-size:14px;color:var(--text-2)" id="data-avg-unit">MPH</span></div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-row-icon" style="background:rgba(255,184,0,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FFB800" stroke-width="2">
+                <path d="M3 12h18M12 3v18"/>
+              </svg>
+            </div>
+            <div class="stat-row-info">
+              <div class="r-label">Total Distance</div>
+              <div class="r-value" id="data-dist">— <span style="font-size:14px;color:var(--text-2)" id="data-dist-unit">MI</span></div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-row-icon" style="background:rgba(0,230,118,0.1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00E676" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+              </svg>
+            </div>
+            <div class="stat-row-info">
+              <div class="r-label">Session Duration</div>
+              <div class="r-value" id="data-duration">—</div>
             </div>
           </div>
         </div>
       </div>
-      <div class="stats4">
-        <div class="sc" id="scDist"><div class="sl">Dist</div><div class="sv" id="svDist">0.00</div></div>
-        <div class="sc" id="scTime"><div class="sl">Time</div><div class="sv" id="svTime">00:00</div></div>
-        <div class="sc" id="scWait"><div class="sl">Wait</div><div class="sv" id="svWait">£0.00</div></div>
-        <div class="sc" id="scMin"><div class="sl">Min</div><div class="sv" id="svMinD">£3.00</div></div>
-      </div>
-      <div class="gps-err" id="taxiErr">GPS denied — Settings → Safari → Location → Allow</div>
-      <div class="done-bnr" id="doneBnr">Trip Complete</div>
-      <div class="btn-area">
-        <button class="btn btn-green" id="btnStart">Start Trip</button>
-        <button class="btn btn-red" id="btnEnd" style="display:none">End Trip</button>
-        <button class="btn btn-amber" id="btnNew" style="display:none">New Trip</button>
-      </div>
-    </div>
 
-    <!-- HISTORY -->
-    <div class="tab" id="tHistory">
-      <div class="section-title">History</div>
-      <div id="tripListEl"></div>
-      <div class="spacer"></div>
-    </div>
-
-    <!-- EARNINGS -->
-    <div class="tab" id="tEarnings">
-      <div class="section-title">Earnings</div>
-      <div class="e-grid" id="earnGridEl"></div>
-      <div class="stat-list" id="earnStatEl"></div>
-      <div class="spacer"></div>
-    </div>
-
-    <!-- ESTIMATE -->
-    <div class="tab" id="tEstimate">
-      <div class="section-title">Estimate</div>
-      <div class="est-form">
-        <div class="fg">
-          <div class="fl">From (Postcode)</div>
-          <div class="ori-row">
-            <input class="fi" id="estFrom" type="text" placeholder="e.g. SW1A 1AA" maxlength="9" autocomplete="off"/>
-            <button class="loc-btn" id="estLocBtn">📍</button>
+      <!-- G-Force Stats -->
+      <div class="data-section-title">G-Force Analysis</div>
+      <div class="data-card">
+        <div class="data-card-inner">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-2)">Peak Lateral G</div>
+              <div style="font-family:var(--font-d);font-size:24px;font-weight:900;color:var(--cyan)" id="peak-lat-g">0.00G</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-2)">Peak Long. G</div>
+              <div style="font-family:var(--font-d);font-size:24px;font-weight:900;color:var(--accent)" id="peak-lon-g">0.00G</div>
+            </div>
+          </div>
+          <div class="g-bar-wrap">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:9px;color:var(--text-2);letter-spacing:0.08em;text-transform:uppercase">Lateral</span>
+              <span style="font-size:9px;color:var(--cyan)" id="lat-pct">0%</span>
+            </div>
+            <div class="g-bar-track"><div class="g-bar-fill lat" id="lat-bar" style="width:0%"></div></div>
+          </div>
+          <div class="g-bar-wrap" style="margin-top:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:9px;color:var(--text-2);letter-spacing:0.08em;text-transform:uppercase">Longitudinal</span>
+              <span style="font-size:9px;color:var(--accent)" id="lon-pct">0%</span>
+            </div>
+            <div class="g-bar-track"><div class="g-bar-fill lon" id="lon-bar" style="width:0%"></div></div>
           </div>
         </div>
-        <div class="fg">
-          <div class="fl">To (Postcode)</div>
-          <input class="fi" id="estTo" type="text" placeholder="e.g. EC1A 1BB" maxlength="9" autocomplete="off"/>
-        </div>
-        <button class="btn btn-green" id="estCalcBtn">Calculate Fare</button>
-        <div class="est-err" id="estErrEl"></div>
-        <div class="est-res-box" id="estResEl">
-          <div class="est-dist-txt" id="estDistTxt"></div>
-          <div class="est-fare-big" id="estFareTxt"></div>
-          <div class="est-range-txt" id="estRangeTxt"></div>
-        </div>
       </div>
-      <div class="spacer"></div>
+
+      <div style="height:20px"></div>
     </div>
 
-  </div>
-  <nav class="b-nav" id="taxiNav">
-    <button class="nb on" data-tab="tMeter"><span class="nb-icon">🚖</span><span class="nb-lbl">Meter</span></button>
-    <button class="nb" data-tab="tHistory"><span class="nb-icon">📋</span><span class="nb-lbl">History</span></button>
-    <button class="nb" data-tab="tEarnings"><span class="nb-icon">💷</span><span class="nb-lbl">Earnings</span></button>
-    <button class="nb" data-tab="tEstimate"><span class="nb-icon">📍</span><span class="nb-lbl">Estimate</span></button>
+  </div><!-- /screens -->
+
+  <!-- Nav Bar -->
+  <nav id="nav">
+    <button class="nav-btn active" id="nav-gauge" onclick="switchScreen('gauge')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 12L7.5 7.5"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        <path d="M5 12H3M21 12h-2M12 3v2M12 19v2"/>
+      </svg>
+      <span>Gauge</span>
+    </button>
+    <button class="nav-btn" id="nav-map" onclick="switchScreen('map')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M1 6l7-3 8 4 7-4v15l-7 4-8-4-7 3V6z"/>
+        <path d="M8 3v15M16 7v15"/>
+      </svg>
+      <span>Map</span>
+    </button>
+    <button class="nav-btn" id="nav-laps" onclick="switchScreen('laps')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+        <path d="M4.93 4.93l.02.02"/>
+      </svg>
+      <span>Laps</span>
+    </button>
+    <button class="nav-btn" id="nav-data" onclick="switchScreen('data')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <path d="M3 14h7v7H3z" opacity="0.4" stroke-dasharray="2 2"/>
+      </svg>
+      <span>Data</span>
+    </button>
   </nav>
-</div>
-
-<!-- ===== DRIVE APP ============================================= -->
-<div id="sDrive" class="screen hidden">
-  <div class="app-bar" id="driveAppBar">
-    <button class="back-btn" id="driveBack">←</button>
-    <div class="ab-title">Drive Tracker</div>
-    <div class="ab-right">
-      <button class="icon-btn" id="driveSettBtn">⚙</button>
-    </div>
-  </div>
-  <div class="tabs-wrap">
-
-    <!-- LIVE -->
-    <div class="tab no-pad active" id="dLive">
-      <div class="dt-idle" id="dtIdle">
-        <div class="idle-hero">🚗</div>
-        <div>
-          <div class="idle-title">Ready to Drive</div>
-          <div class="idle-desc" style="margin-top:8px">Live speed-coloured route map, top speed tracker, acceleration data and all-time statistics.</div>
-        </div>
-        <button class="btn btn-cyan" id="dtBtnStart" style="width:calc(100% - 36px)">Start Drive</button>
-        <div class="last-drive-card" id="lastDriveCard">
-          <div class="ld-lbl">Last Drive</div>
-          <div class="ld-stats" id="lastDriveStats"></div>
-        </div>
-      </div>
-      <div class="dt-rec" id="dtRec">
-        <!-- Performance timer strip -->
-        <div class="perf-strip" id="perfStrip">
-          <span class="perf-arm" id="perfArmBadge" style="display:none">ARMED</span>
-          <span class="perf-label" id="perfLabel">0–60</span>
-          <span class="perf-time" id="perfTime">0.00</span>
-        </div>
-        <!-- Result flash -->
-        <div class="perf-result" id="perfResult">
-          <div class="pr-label" id="prLabel">0–60 mph</div>
-          <div class="pr-time" id="prTime">0.00s</div>
-          <div class="pr-sub" id="prSub"></div>
-          <div class="pr-pb" id="prPb" style="display:none">🏆 NEW PERSONAL BEST</div>
-          <button class="pr-dismiss" id="prDismiss">Dismiss</button>
-        </div>
-        <div id="liveMap"></div>
-        <button class="snap-btn" id="snapBtn" title="Centre on location">◎</button>
-        <div class="live-hud">
-          <div class="hud-main">
-            <div class="hud-spd-block">
-              <div class="hud-spd" id="hudSpd">0</div>
-              <div class="hud-unit">mph</div>
-            </div>
-            <div class="hud-metrics">
-              <div class="hm"><div class="hm-v" id="hudTime">00:00</div><div class="hm-l">Time</div></div>
-              <div class="hm"><div class="hm-v" id="hudDist">0.0</div><div class="hm-l">Miles</div></div>
-              <div class="hm"><div class="hm-v" id="hudTop">0</div><div class="hm-l">Top</div></div>
-              <div class="hm"><div class="hm-v" id="hudG">0.00</div><div class="hm-l">G-max</div></div>
-            </div>
-          </div>
-          <div class="spd-bar-wrap"><div class="spd-bar" id="spdBar"></div></div>
-          <button class="btn btn-red" id="dtBtnStop">Stop Drive</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- DRIVES LIST -->
-    <div class="tab" id="dDrives">
-      <div class="section-title">My Drives</div>
-      <div id="drivesListEl"></div>
-      <div class="spacer"></div>
-    </div>
-
-    <!-- RECORDS (Personal Bests) -->
-    <div class="tab" id="dRecords">
-      <div class="section-title">Personal Bests</div>
-      <div class="pb-grid" id="pbGridEl"></div>
-      <div class="spacer"></div>
-    </div>
-
-    <!-- STATS -->
-    <div class="tab" id="dStats">
-      <div class="section-title">Statistics</div>
-      <div class="sg" id="statsGridEl"></div>
-      <div class="stat-list" id="statsDetailEl"></div>
-      <div class="spacer"></div>
-    </div>
-
-  </div>
-  <nav class="b-nav" id="driveNav">
-    <button class="nb on" data-tab="dLive"><span class="nb-icon">🔴</span><span class="nb-lbl">Live</span></button>
-    <button class="nb" data-tab="dDrives"><span class="nb-icon">🗂</span><span class="nb-lbl">Drives</span></button>
-    <button class="nb" data-tab="dRecords"><span class="nb-icon">🏆</span><span class="nb-lbl">Bests</span></button>
-    <button class="nb" data-tab="dStats"><span class="nb-icon">📊</span><span class="nb-lbl">Stats</span></button>
-  </nav>
-</div>
-
-<!-- ===== SETTINGS OVERLAY ====================================== -->
-<div class="ov" id="settOv">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div class="sh-title">Settings</div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Light Mode</div><div class="f-desc">Toggle app appearance</div></div>
-      <div class="tog" id="togTheme"><div class="tog-th"></div></div>
-    </div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Auto Night Mode</div><div class="f-desc">Switches at sunrise & sunset</div></div>
-      <div class="tog" id="togAuto"><div class="tog-th"></div></div>
-    </div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Base Fare</div><div class="f-desc">Charged at trip start</div></div>
-      <input class="fi-num" id="inBase" type="number" min="0" step="0.1"/>
-    </div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Rate / Mile</div><div class="f-desc">£ per mile driven</div></div>
-      <input class="fi-num" id="inRate" type="number" min="0" step="0.1"/>
-    </div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Waiting Rate</div><div class="f-desc">£/min below 5 mph</div></div>
-      <input class="fi-num" id="inWait" type="number" min="0" step="0.05"/>
-    </div>
-    <div class="field">
-      <div class="f-info"><div class="f-name">Minimum Fare</div><div class="f-desc">Floor for any trip</div></div>
-      <input class="fi-num" id="inMin" type="number" min="0" step="0.5"/>
-    </div>
-    <div style="margin-top:18px;padding-top:4px;border-top:1px solid var(--border)">
-      <button class="danger-btn" id="clearAllBtn" style="margin:14px 0 0">Clear All Data</button>
-      <div style="font-size:11px;color:var(--text-d);text-align:center;margin-top:6px">Permanently deletes all trips, drives and statistics</div>
-    </div>
-    <button class="sh-done" id="settDone">Done</button>
-  </div>
-</div>
-
-<!-- ===== RECEIPT OVERLAY ======================================= -->
-<div class="ov" id="recOv">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <div id="recBodyEl"></div>
-    <div class="rec-btns">
-      <button class="btn btn-ghost" id="recShareBtn">Share</button>
-      <button class="btn btn-ghost" id="recCloseBtn">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== DRIVE DETAIL OVERLAY ================================== -->
-<div class="ov" id="detailOv">
-  <div class="map-sheet">
-    <div class="map-sh-bar">
-      <div class="map-sh-title" id="detailTitleEl">Drive Details</div>
-      <button class="close-x" id="detailCloseBtn">✕</button>
-    </div>
-    <div id="detailMapEl"></div>
-    <div class="map-sh-stats" id="detailStatsEl"></div>
-  </div>
-</div>
+</div><!-- /app -->
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);
-const RAD=Math.PI/180;
 
-// ─── SPEED ZONES ─────────────────────────────────────────────
-const ZONES=[
-  {max:20, color:'#00c853', label:'0–20 mph'},
-  {max:40, color:'#ffd600', label:'20–40'},
-  {max:60, color:'#ff6d00', label:'40–60'},
-  {max:80, color:'#d50000', label:'60–80'},
-  {max:9999,color:'#aa00ff',label:'80+'},
-];
-function zoneColor(mph){return (ZONES.find(z=>mph<z.max)||ZONES[4]).color;}
-// Speed bar: 0→100 mph = 0→100%, colour matching
-function spdBarStyle(mph){
-  const pct=Math.min(mph/100*100,100);
-  return {width:pct+'%',background:zoneColor(mph)};
-}
-
-// ─── STORAGE ──────────────────────────────────────────────────
-const LS={
-  get(k,d=null){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
-};
-const K={sett:'tm_s3',taxi:'tm_taxi3',drives:'tm_drv3',totals:'tm_tot3',bests:'tm_bests3'};
-
-// ─── SETTINGS ─────────────────────────────────────────────────
-const DEF={baseFare:3,ratePerMile:2.5,waitRate:0.2,minFare:3,theme:'dark',autoNight:false};
-let S={...DEF};
-function loadS(){S={...DEF,...(LS.get(K.sett)||{})};}
-function saveS(){LS.set(K.sett,S);}
-
-// ─── THEME ────────────────────────────────────────────────────
-function isDark(){return S.theme==='dark';}
-function applyTheme(dark){
-  S.theme=dark?'dark':'light';
-  document.documentElement.setAttribute('data-theme',S.theme);
-  $('togTheme').classList.toggle('on',!dark);
-  $('homeTheme').textContent=dark?'☀':'🌙';
-  if(liveMapObj)swapTiles(liveMapObj,liveTileLayer,l=>liveTileLayer=l);
-  if(detailMapObj)swapTiles(detailMapObj,detailTileLayer,l=>detailTileLayer=l);
-  drawTicks();
-}
-function tileURL(){
-  return isDark()
-    ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-}
-const TILE_ATTR='&copy;OpenStreetMap &copy;CARTO';
-function swapTiles(map,oldLayer,setLayer){
-  if(oldLayer)map.removeLayer(oldLayer);
-  const nl=L.tileLayer(tileURL(),{attribution:TILE_ATTR,maxZoom:19,subdomains:'abcd'});
-  nl.addTo(map);setLayer(nl);
-}
-
-// ─── SUNRISE/SUNSET ───────────────────────────────────────────
-function isDay(lat,lon){
-  try{
-    const JD=Date.now()/86400000+2440587.5,n=JD-2451545+0.0008,Js=n-lon/360;
-    const M=(357.5291+0.98560028*Js)%360;
-    const C=1.9148*Math.sin(M*RAD)+0.02*Math.sin(2*M*RAD);
-    const lam=(M+C+180+102.9372)%360;
-    const Jt=2451545+Js+0.0053*Math.sin(M*RAD)-0.0069*Math.sin(2*lam*RAD);
-    const sinD=Math.sin(lam*RAD)*Math.sin(23.44*RAD);
-    const cosHA=(Math.sin(-0.8333*RAD)-Math.sin(lat*RAD)*sinD)/(Math.cos(lat*RAD)*Math.cos(Math.asin(sinD)));
-    if(cosHA<=-1)return true;if(cosHA>=1)return false;
-    const HA=Math.acos(cosHA)/RAD;
-    return JD>=(Jt-HA/360)&&JD<=(Jt+HA/360);
-  }catch{return true;}
-}
-
-// ─── HELPERS ──────────────────────────────────────────────────
-function hav(la1,lo1,la2,lo2){
-  const R=6371000,dLa=(la2-la1)*RAD,dLo=(lo2-lo1)*RAD;
-  const a=Math.sin(dLa/2)**2+Math.cos(la1*RAD)*Math.cos(la2*RAD)*Math.sin(dLo/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function fmtT(s){return`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-function fmtDate(iso){
-  const d=new Date(iso);
-  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'})+
-    ' · '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-}
-function gbp(v){return'£'+v.toFixed(2);}
-
-// ─── SCREEN NAVIGATION ────────────────────────────────────────
-let curScreen='sHome';
-function goTo(id){
-  const prev=curScreen;
-  curScreen=id;
-  // Animate out the current screen
-  $(prev).classList.add('out');
-  setTimeout(()=>{ $(prev).classList.remove('out'); $(prev).classList.add('hidden'); },280);
-  // Prepare new screen off-screen, then transition in
-  const el=$(id);
-  el.classList.remove('hidden');
-  el.classList.add('entering');
-  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.remove('entering')));
-}
-function goHome(){
-  const prev=curScreen;
-  curScreen='sHome';
-  $(prev).classList.add('hidden');
-  $(prev).classList.remove('out','entering');
-  const h=$('sHome');
-  h.classList.remove('hidden');
-  h.classList.add('entering');
-  requestAnimationFrame(()=>requestAnimationFrame(()=>h.classList.remove('entering')));
-}
-function switchTab(navEl,screenId,tabId){
-  document.querySelectorAll('#'+screenId+' .tab').forEach(t=>t.classList.remove('active'));
-  $(tabId).classList.add('active');
-  navEl.parentNode.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
-  navEl.classList.add('on');
-}
-
-// ─── TICK MARKS ───────────────────────────────────────────────
-function drawTicks(){
-  const g=$('tickG');if(!g)return;
-  const dark=isDark();
-  g.innerHTML='';
-  for(let i=0;i<60;i++){
-    const ang=(i/60*360-90)*RAD,major=i%5===0;
-    const r1=major?107:111,r2=116,cx=130,cy=130;
-    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1',cx+r1*Math.cos(ang));l.setAttribute('y1',cy+r1*Math.sin(ang));
-    l.setAttribute('x2',cx+r2*Math.cos(ang));l.setAttribute('y2',cy+r2*Math.sin(ang));
-    l.setAttribute('stroke',dark?(major?'rgba(255,179,0,0.35)':'rgba(255,255,255,0.1)'):(major?'rgba(143,88,0,0.4)':'rgba(0,0,0,0.1)'));
-    l.setAttribute('stroke-width',major?'2':'1');
-    g.appendChild(l);
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// TAXI MODE
-// ════════════════════════════════════════════════════════════
-const T={
-  running:false,secs:0,distMi:0,fare:0,
-  waitSecs:0,waitCharge:0,isWaiting:false,
-  speedMs:0,prevPos:null,prevTS:0,
-  watchId:null,timerID:null,wakeLock:null,
-  milestone:0,tripStart:null,routePts:[],
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+const S = {
+  unit: 'mph',
+  speed: 0,
+  displaySpeed: 0,
+  heading: 0,
+  accuracy: null,
+  gpsActive: false,
+  trailPoints: [],
+  gForce: { x: 0, y: 0, mag: 0 },
+  gTrail: [],
+  peakLat: 0,
+  peakLon: 0,
+  topSpeed: 0,
+  totalDist: 0,
+  speedSamples: [],
+  sessionStart: null,
+  lastPos: null,
+  // Sprint
+  sprint: { state: 'armed', startTime: 0, endTime: 0, startSpeed: 0 },
+  // Laps
+  lap: { running: false, startTime: 0, elapsed: 0, lastLap: 0, laps: [], lapStart: 0 },
+  currentScreen: 'gauge',
+  mapFollow: true,
+  permDone: false,
 };
 
-function tStart(){
-  Object.assign(T,{running:true,secs:0,distMi:0,waitSecs:0,waitCharge:0,
-    isWaiting:false,prevPos:null,prevTS:0,speedMs:0,tripStart:new Date().toISOString(),routePts:[]});
-  T.fare=S.baseFare;T.milestone=Math.floor(S.baseFare);
-  T.watchId=navigator.geolocation.watchPosition(tOnPos,tOnErr,{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
-  T.timerID=setInterval(tTick,1000);
-  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>T.wakeLock=w).catch(()=>{});
-  $('btnStart').style.display='none';$('btnEnd').style.display='block';$('btnNew').style.display='none';
-  $('doneBnr').style.display='none';$('taxiErr').style.display='none';
-  $('ringWrap').classList.add('running');
-  setStatus('run','Running');tRender();
+let rafId = null;
+let map = null;
+let mapTrail = null;
+let mapMarker = null;
+let mapInitialized = false;
+
+const DPR = window.devicePixelRatio || 1;
+
+/* ════════════════════════════════════
+   CONVERSION
+════════════════════════════════════ */
+const MPS_TO_MPH = 2.23694;
+const MPS_TO_KPH = 3.6;
+const M_TO_MI = 0.000621371;
+const M_TO_KM = 0.001;
+
+function speedConvert(mps) {
+  return S.unit === 'mph' ? mps * MPS_TO_MPH : mps * MPS_TO_KPH;
 }
-function tTick(){
-  if(!T.running)return;
-  T.secs++;
-  if(T.isWaiting){
-    T.waitSecs++;T.waitCharge=(T.waitSecs/60)*S.waitRate;
-    T.fare=Math.max(S.minFare,S.baseFare+T.distMi*S.ratePerMile+T.waitCharge);
-    tCheckMilestone();
-  }
-  // Arc: one full rotation = 300s
-  const off=754-Math.min(T.secs/300,1)*754;
-  $('rArc').style.strokeDashoffset=off;
-  tRender();
+function distConvert(m) {
+  return S.unit === 'mph' ? m * M_TO_MI : m * M_TO_KM;
 }
-function tCheckMilestone(){
-  const fl=Math.floor(T.fare);
-  if(fl>T.milestone){
-    T.milestone=fl;
-    const el=$('fareEl');
-    el.classList.remove('ding');void el.offsetWidth;el.classList.add('ding');
-    if(navigator.vibrate)navigator.vibrate([55,25,55]);
-  }
-}
-function tOnPos(pos){
-  $('taxiErr').style.display='none';
-  const{latitude:lat,longitude:lon,accuracy,speed}=pos.coords,t=pos.timestamp;
-  if(accuracy>50)return;
-  T.speedMs=(speed!=null&&speed>=0)?speed:0;
-  if(T.prevPos){
-    const dt=(t-T.prevTS)/1000;
-    if(dt>0&&dt<30){
-      if(speed==null||speed<0){const m=hav(T.prevPos[0],T.prevPos[1],lat,lon);T.speedMs=m/dt;}
-      T.distMi+=hav(T.prevPos[0],T.prevPos[1],lat,lon)/1609.344;
-    }
-  }
-  T.prevPos=[lat,lon];T.prevTS=t;
-  const mph=T.speedMs*2.23694;
-  T.isWaiting=mph<5;
-  if(!T.isWaiting){T.fare=Math.max(S.minFare,S.baseFare+T.distMi*S.ratePerMile+T.waitCharge);tCheckMilestone();}
-  T.routePts.push([lat,lon]);
-  if(S.autoNight){const d=isDay(lat,lon);if(d&&isDark())applyTheme(false);else if(!d&&!isDark())applyTheme(true);}
-  setStatus(T.isWaiting?'wait':'run',T.isWaiting?'Waiting':'Running');
-  $('scWait').classList.toggle('lit',T.isWaiting);
-  tRender();
-}
-function tOnErr(e){if(e.code===1)$('taxiErr').style.display='block';}
-function tRender(){
-  $('fareEl').textContent=gbp(T.fare);
-  $('svDist').textContent=T.distMi.toFixed(2)+' mi';
-  $('svTime').textContent=fmtT(T.secs);
-  $('svWait').textContent=gbp(T.waitCharge);
-  $('taxiSpdEl').textContent=(T.speedMs*2.23694).toFixed(0)+' mph';
-}
-function tStop(){
-  T.running=false;
-  if(T.timerID){clearInterval(T.timerID);T.timerID=null;}
-  if(T.watchId!==null){navigator.geolocation.clearWatch(T.watchId);T.watchId=null;}
-  if(T.wakeLock){T.wakeLock.release().catch(()=>{});T.wakeLock=null;}
-  $('ringWrap').classList.remove('running');
-  $('btnEnd').style.display='none';$('btnNew').style.display='block';
-  $('doneBnr').style.display='block';$('taxiMapBtn').style.display='block';
-  setStatus('end','Ended');
-  const trip={id:Date.now()+'',date:T.tripStart,secs:T.secs,distMi:T.distMi,
-    fare:T.fare,waitCharge:T.waitCharge,waitSecs:T.waitSecs,routePts:T.routePts};
-  const h=LS.get(K.taxi,[]);h.push(trip);LS.set(K.taxi,h.slice(-200));
-  renderHistory();renderEarnings();
-}
-function tReset(){
-  Object.assign(T,{fare:0,distMi:0,secs:0,waitCharge:0,waitSecs:0,speedMs:0});
-  $('fareEl').textContent='£0.00';$('svDist').textContent='0.00 mi';
-  $('svTime').textContent='00:00';$('svWait').textContent='£0.00';
-  $('taxiSpdEl').textContent='— mph';$('rArc').style.strokeDashoffset='754';
-  $('btnNew').style.display='none';$('btnStart').style.display='block';
-  $('doneBnr').style.display='none';$('taxiErr').style.display='none';
-  $('scWait').classList.remove('lit');
-  setStatus('','Ready');
-}
-function setStatus(cls,txt){
-  $('sDot').className='sdot'+(cls?' '+cls:'');
-  $('sTxt').textContent=txt;$('sTxt').className='stxt'+(cls?' '+cls:'');
+function unitLabel() { return S.unit.toUpperCase(); }
+function distLabel() { return S.unit === 'mph' ? 'MI' : 'KM'; }
+
+function setUnit(u) {
+  S.unit = u;
+  document.getElementById('btn-mph').classList.toggle('active', u === 'mph');
+  document.getElementById('btn-kph').classList.toggle('active', u === 'kph');
+  document.getElementById('map-speed-unit').textContent = unitLabel();
+  document.getElementById('data-top-unit').textContent = unitLabel();
+  document.getElementById('data-avg-unit').textContent = unitLabel();
+  document.getElementById('data-dist-unit').textContent = distLabel();
 }
 
-// History
-function renderHistory(){
-  const hist=LS.get(K.taxi,[]).slice().reverse();
-  const el=$('tripListEl');
-  if(!hist.length){el.innerHTML='<div class="empty-state">No trips yet.<br>Start your first trip!</div>';return;}
-  el.innerHTML=hist.map(t=>`
-    <div class="trip-card" data-id="${t.id}">
-      <div class="tc-l">
-        <div class="tc-date">${fmtDate(t.date)}</div>
-        <div class="tc-meta">${t.distMi.toFixed(2)} mi · ${fmtT(t.secs)}</div>
-      </div>
-      <div class="tc-fare">${gbp(t.fare)}</div>
-    </div>`).join('');
-  el.querySelectorAll('.trip-card').forEach(c=>c.addEventListener('click',()=>{
-    const t=hist.find(x=>x.id===c.dataset.id);if(t)openReceipt(t);
-  }));
-  el.insertAdjacentHTML('beforeend','<button class="danger-btn" id="clrHistBtn">Clear All History</button>');
-  $('clrHistBtn').addEventListener('click',()=>{
-    if(confirm('Clear all trip history?')){LS.set(K.taxi,[]);renderHistory();renderEarnings();}
+/* ════════════════════════════════════
+   CANVAS SETUP
+════════════════════════════════════ */
+function makeCanvas(id, w, h) {
+  const c = document.getElementById(id);
+  c.width = w * DPR;
+  c.height = h * DPR;
+  c.style.width = w + 'px';
+  c.style.height = h + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return { canvas: c, ctx, W: w, H: h };
+}
+
+let speedoCtx, speedoW, speedoH;
+let gforceCtx, gforceW, gforceH;
+let headingCtx, headingW, headingH;
+
+function initCanvases() {
+  const vw = Math.min(window.innerWidth, 420);
+  const sd = Math.min(vw - 24, 300);
+  const { canvas, ctx, W, H } = makeCanvas('speedo-canvas', sd, sd);
+  speedoCtx = ctx; speedoW = W; speedoH = H;
+
+  const gd = 110;
+  const g = makeCanvas('gforce-canvas', gd, gd);
+  gforceCtx = g.ctx; gforceW = g.W; gforceH = g.H;
+
+  const hd = 110;
+  const h = makeCanvas('heading-canvas', hd, hd);
+  headingCtx = h.ctx; headingW = h.W; headingH = h.H;
+}
+
+/* ════════════════════════════════════
+   DRAW SPEEDOMETER
+════════════════════════════════════ */
+const MAX_SPEED_MPH = 220;
+const MAX_SPEED_KPH = 350;
+
+function drawSpeedometer(speed) {
+  const ctx = speedoCtx;
+  const W = speedoW, H = speedoH;
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) / 2 * 0.86;
+  const maxSpeed = S.unit === 'mph' ? MAX_SPEED_MPH : MAX_SPEED_KPH;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const startA = 135 * Math.PI / 180;
+  const totalArc = 270 * Math.PI / 180;
+  const fraction = Math.max(0, Math.min(speed / maxSpeed, 1));
+
+  // ─ Outer decorative ring ─
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 8, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // ─ Track arc ─
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, startA, startA + totalArc);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // ─ Speed zone arc ─
+  const zones = [
+    { start: 0, end: 0.36, c: '#00E676' },
+    { start: 0.36, end: 0.64, c: '#FFB800' },
+    { start: 0.64, end: 0.82, c: '#FF6D00' },
+    { start: 0.82, end: 1.00, c: '#FF1744' },
+  ];
+
+  zones.forEach(z => {
+    const s = z.start;
+    const e = Math.min(fraction, z.end);
+    if (e <= s) return;
+    const aS = startA + s * totalArc;
+    const aE = startA + e * totalArc;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, aS, aE);
+    ctx.strokeStyle = z.c;
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'butt';
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = z.c;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
   });
-}
 
-function openReceipt(t){
-  const wm=(t.waitSecs/60).toFixed(1);
-  $('recBodyEl').innerHTML=`
-    <div class="rec-hdr">RECEIPT</div>
-    <div class="rec-date">${fmtDate(t.date)}</div>
-    <div class="rec-div"></div>
-    <div class="rec-row"><div class="rrl">Base Fare</div><div class="rrv">${gbp(S.baseFare)}</div></div>
-    <div class="rec-row"><div class="rrl">Distance (${t.distMi.toFixed(2)} mi)</div><div class="rrv">${gbp(t.distMi*S.ratePerMile)}</div></div>
-    <div class="rec-row"><div class="rrl">Waiting (${wm} min)</div><div class="rrv">${gbp(t.waitCharge)}</div></div>
-    <div class="rec-row"><div class="rrl">Duration</div><div class="rrv">${fmtT(t.secs)}</div></div>
-    <div class="rec-div"></div>
-    <div class="rec-row tot"><div class="rrl">Total</div><div class="rrv">${gbp(t.fare)}</div></div>`;
-  $('recOv').classList.add('open');
-}
+  // ─ Tick marks ─
+  const step = S.unit === 'mph' ? 10 : 20;
+  const major = S.unit === 'mph' ? 20 : 50;
+  for (let s = 0; s <= maxSpeed; s += step) {
+    const frac = s / maxSpeed;
+    const angle = startA + frac * totalArc;
+    const isMajor = s % major === 0;
+    const oR = R * 0.95;
+    const iR = isMajor ? R * 0.72 : R * 0.82;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * oR, cy + sin * oR);
+    ctx.lineTo(cx + cos * iR, cy + sin * iR);
+    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = isMajor ? 2.5 : 1;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 0;
+    ctx.stroke();
 
-// Earnings
-function renderEarnings(){
-  const h=LS.get(K.taxi,[]);
-  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const wk=new Date(today);wk.setDate(wk.getDate()-7);
-  const td=h.filter(t=>new Date(t.date)>=today);
-  const wkh=h.filter(t=>new Date(t.date)>=wk);
-  const sum=a=>a.reduce((s,t)=>s+t.fare,0);
-  const tE=sum(td),wE=sum(wkh),aE=sum(h);
-  $('earnGridEl').innerHTML=`
-    <div class="e-card wide"><div class="e-lbl">Today's Earnings</div><div class="e-val">${gbp(tE)}</div><div class="e-sub">${td.length} trip${td.length!==1?'s':''}</div></div>
-    <div class="e-card"><div class="e-lbl">This Week</div><div class="e-val" style="font-size:20px">${gbp(wE)}</div><div class="e-sub">${wkh.length} trips</div></div>
-    <div class="e-card"><div class="e-lbl">All Time</div><div class="e-val" style="font-size:20px">${gbp(aE)}</div><div class="e-sub">${h.length} trips</div></div>`;
-  const avgF=h.length?aE/h.length:0;
-  const avgD=h.length?h.reduce((s,t)=>s+t.distMi,0)/h.length:0;
-  const avgT=h.length?Math.round(h.reduce((s,t)=>s+t.secs,0)/h.length):0;
-  const totMi=h.reduce((s,t)=>s+t.distMi,0);
-  $('earnStatEl').innerHTML=`
-    <div class="sr"><div class="sr-l">Average Fare</div><div class="sr-v">${gbp(avgF)}</div></div>
-    <div class="sr"><div class="sr-l">Avg Distance</div><div class="sr-v">${avgD.toFixed(2)} mi</div></div>
-    <div class="sr"><div class="sr-l">Avg Duration</div><div class="sr-v">${fmtT(avgT)}</div></div>
-    <div class="sr"><div class="sr-l">Total Miles</div><div class="sr-v">${totMi.toFixed(1)} mi</div></div>`;
-}
-
-// Estimate
-async function doEstimate(){
-  const from=$('estFrom').value.trim().replace(/\s/g,'').toUpperCase();
-  const to=$('estTo').value.trim().replace(/\s/g,'').toUpperCase();
-  const errEl=$('estErrEl'),resEl=$('estResEl');
-  errEl.className='est-err';resEl.className='est-res-box';
-  if(!from||!to){errEl.textContent='Enter both postcodes.';errEl.className='est-err show';return;}
-  $('estCalcBtn').textContent='Calculating…';$('estCalcBtn').disabled=true;
-  try{
-    const[r1,r2]=await Promise.all([
-      fetch(`https://api.postcodes.io/postcodes/${from}`).then(r=>r.json()),
-      fetch(`https://api.postcodes.io/postcodes/${to}`).then(r=>r.json()),
-    ]);
-    if(r1.status!==200)throw new Error('Origin postcode not found.');
-    if(r2.status!==200)throw new Error('Destination postcode not found.');
-    const{latitude:la1,longitude:lo1}=r1.result,{latitude:la2,longitude:lo2}=r2.result;
-    const mi=hav(la1,lo1,la2,lo2)/1609.344;
-    const base=S.baseFare+mi*S.ratePerMile;
-    const lo=Math.max(S.minFare,base*.9),hi=base*1.18;
-    $('estDistTxt').textContent=`Straight-line: ${mi.toFixed(1)} miles`;
-    $('estFareTxt').textContent=gbp(base);
-    $('estRangeTxt').textContent=`Estimated range: ${gbp(lo)} – ${gbp(hi)}`;
-    resEl.className='est-res-box show';
-  }catch(e){errEl.textContent=e.message||'Could not calculate.';errEl.className='est-err show';}
-  $('estCalcBtn').textContent='Calculate Fare';$('estCalcBtn').disabled=false;
-}
-
-// ════════════════════════════════════════════════════════════
-// DRIVE TRACKER
-// ════════════════════════════════════════════════════════════
-let liveMapObj=null,liveTileLayer=null;
-let detailMapObj=null,detailTileLayer=null;
-let livePolylines=[],liveCurColor=null,liveCurPts=[];
-let livePosMarker=null;
-
-const D={
-  running:false,secs:0,distMi:0,
-  topSpd:0,topSpdLat:0,topSpdLon:0,
-  topAccel:0,topAccelLat:0,topAccelLon:0,
-  prevPos:null,prevTS:0,prevSpdMs:0,
-  watchId:null,timerID:null,wakeLock:null,
-  startTime:null,pts:[],
-  warmup:0,
-  // Performance timers
-  perf:{
-    state:'idle',    // idle | armed | running | done
-    startTS:0,       // GPS timestamp at launch
-    startPos:null,   // [lat,lon] at launch
-    launchDist:0,    // cumulative distMi at launch
-    elapsed:0,       // seconds
-    hit30:false, t30:0,
-    hit60:false, t60:0,
-    hitQmi:false, tQmi:0,
-    animID:null,
-  },
-  brakes:[],  // {lat,lon,force,mph,ts}
-};
-// Run labels cycling
-const PERF_RUNS=['0–30','0–60','¼ Mile'];
-let perfRunIdx=0;  // which run is being shown / armed for
-function perfRunLabel(){return PERF_RUNS[perfRunIdx];}
-function perfRunKey(){return['t30','t60','tQmi'][perfRunIdx];}
-function perfRunTarget(){return[30,60,null][perfRunIdx];}// null=qmi uses distance
-
-
-function initLiveMap(){
-  if(liveMapObj)return;
-  liveMapObj=L.map('liveMap',{zoomControl:false,attributionControl:true});
-  liveTileLayer=L.tileLayer(tileURL(),{attribution:TILE_ATTR,maxZoom:19,subdomains:'abcd'}).addTo(liveMapObj);
-  // Speed legend
-  const leg=L.control({position:'topright'});
-  leg.onAdd=function(){
-    const d=L.DomUtil.create('div','spd-legend');
-    d.innerHTML=ZONES.map(z=>`<div class="sl-row"><div class="sl-dot" style="background:${z.color}"></div>${z.label}</div>`).join('');
-    return d;
-  };
-  leg.addTo(liveMapObj);
-  liveMapObj.setView([51.5,-0.12],14);
-}
-
-function clearLiveRoute(){
-  livePolylines.forEach(pl=>liveMapObj&&liveMapObj.removeLayer(pl));
-  livePolylines=[];liveCurColor=null;liveCurPts=[];
-  if(livePosMarker&&liveMapObj){liveMapObj.removeLayer(livePosMarker);livePosMarker=null;}
-}
-
-function addLivePoint(lat,lon,mph){
-  if(!liveMapObj)return;
-  const col=zoneColor(mph),pt=[lat,lon];
-  if(col!==liveCurColor||!livePolylines.length){
-    const bridge=liveCurPts.length?[liveCurPts[liveCurPts.length-1],pt]:[pt,pt];
-    liveCurColor=col;
-    liveCurPts=bridge.slice();
-    const pl=L.polyline(liveCurPts,{color:col,weight:5,opacity:.9,lineJoin:'round'}).addTo(liveMapObj);
-    livePolylines.push(pl);
-  }else{
-    liveCurPts.push(pt);
-    livePolylines[livePolylines.length-1].setLatLngs([...liveCurPts]);
-  }
-  const icon=L.divIcon({html:`<div class="pos-dot" style="background:${col}"></div>`,className:'',iconSize:[16,16],iconAnchor:[8,8]});
-  if(!livePosMarker){livePosMarker=L.marker([lat,lon],{icon,zIndexOffset:1000}).addTo(liveMapObj);}
-  else{livePosMarker.setLatLng([lat,lon]);livePosMarker.setIcon(icon);}
-  liveMapObj.panTo([lat,lon],{animate:true,duration:.5});
-}
-
-function dStart(){
-  Object.assign(D,{running:true,secs:0,distMi:0,topSpd:0,topAccel:0,
-    prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[],warmup:0,brakes:[]});
-  Object.assign(D.perf,{state:'idle',startTS:0,startPos:null,launchDist:0,elapsed:0,
-    hit30:false,t30:0,hit60:false,t60:0,hitQmi:false,tQmi:0,animID:null,peakMph:0});
-  // UI switch
-  $('dtIdle').style.display='none';
-  $('dtRec').classList.add('active');
-  $('driveNav').classList.add('gone');
-  $('driveAppBar').style.display='none';
-  setTimeout(()=>{initLiveMap();clearLiveRoute();liveMapObj.invalidateSize();},120);
-  D.watchId=navigator.geolocation.watchPosition(dOnPos,()=>{},{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
-  D.timerID=setInterval(dTick,1000);
-  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>D.wakeLock=w).catch(()=>{});
-  dUpdateHUD();
-}
-function dTick(){if(!D.running)return;D.secs++;dUpdateHUD();}
-function dOnPos(pos){
-  const{latitude:lat,longitude:lon,accuracy,speed}=pos.coords,ts=pos.timestamp;
-  if(accuracy>50)return;
-  // Store last known position for snap button regardless of warmup
-  D.lastLat=lat;D.lastLon=lon;
-  // Warmup: accept first 4 fixes to let GPS settle, but don't record data from them
-  if(D.warmup<4){
-    D.warmup++;
-    // Still pan map to first good fix so user sees their position
-    if(liveMapObj){
-      addLivePoint(lat,lon,0);
-      liveMapObj.setView([lat,lon],15,{animate:true});
-    }
-    D.prevPos=[lat,lon];D.prevTS=ts;D.prevSpdMs=0;
-    return;
-  }
-  let sMs=(speed!=null&&speed>=0)?speed:D.prevSpdMs;
-  if(D.prevPos){
-    const dt=(ts-D.prevTS)/1000;
-    if(dt>0&&dt<30){
-      if(speed==null||speed<0){const m=hav(D.prevPos[0],D.prevPos[1],lat,lon);sMs=m/dt;}
-      const segM=hav(D.prevPos[0],D.prevPos[1],lat,lon);
-      D.distMi+=segM/1609.344;
-      const dv=sMs-D.prevSpdMs;
-      if(dv>0&&dt<4){
-        const acc=dv/dt;
-        if(acc>D.topAccel){D.topAccel=acc;D.topAccelLat=lat;D.topAccelLon=lon;}
-      }
-      // Hard braking: deceleration worse than -3.5 m/s²
-      if(dv<0&&dt<4){
-        const dec=dv/dt; // negative
-        if(dec<-3.5){
-          D.brakes.push({lat:+lat.toFixed(5),lon:+lon.toFixed(5),
-            force:+Math.abs(dec).toFixed(2),mph:+(sMs*2.23694).toFixed(1),ts});
-        }
-      }
+    if (isMajor) {
+      const lR = R * 0.62;
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.font = `600 ${R * 0.095}px 'Barlow Condensed', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(s, cx + Math.cos(angle) * lR, cy + Math.sin(angle) * lR);
     }
   }
-  const mph=sMs*2.23694;
-  if(mph>D.topSpd){D.topSpd=mph;D.topSpdLat=lat;D.topSpdLon=lon;}
-  D.pts.push({la:+lat.toFixed(5),lo:+lon.toFixed(5),sp:+mph.toFixed(1)});
-  addLivePoint(lat,lon,mph);
-  // ── Perf timer logic ─────────────────────────────────────
-  perfUpdate(mph,lat,lon,ts);
-  D.prevPos=[lat,lon];D.prevTS=ts;D.prevSpdMs=sMs;
-  if(S.autoNight){const d=isDay(lat,lon);if(d&&isDark())applyTheme(false);else if(!d&&!isDark())applyTheme(true);}
-  dUpdateHUD();
+
+  // ─ Needle glow halo ─
+  const needleA = startA + fraction * totalArc;
+  const nlLen = R * 0.78;
+  const gx = cx + Math.cos(needleA) * nlLen;
+  const gy = cy + Math.sin(needleA) * nlLen;
+  const glowGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, R * 0.3);
+  glowGrad.addColorStop(0, 'rgba(255,61,0,0.18)');
+  glowGrad.addColorStop(1, 'rgba(255,61,0,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // ─ Needle ─
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(needleA);
+  const nLen = R * 0.78;
+  const nBack = R * 0.16;
+
+  ctx.shadowBlur = 22;
+  ctx.shadowColor = '#FF5500';
+  const ng = ctx.createLinearGradient(-nBack, 0, nLen, 0);
+  ng.addColorStop(0, 'rgba(255,255,255,0.3)');
+  ng.addColorStop(0.65, '#FF4500');
+  ng.addColorStop(1, '#FF8800');
+
+  ctx.beginPath();
+  ctx.moveTo(-nBack, 2.5);
+  ctx.lineTo(-nBack, -2.5);
+  ctx.lineTo(nLen * 0.68, -2.8);
+  ctx.lineTo(nLen, 0);
+  ctx.lineTo(nLen * 0.68, 2.8);
+  ctx.closePath();
+  ctx.fillStyle = ng;
+  ctx.fill();
+  ctx.restore();
+  ctx.shadowBlur = 0;
+
+  // ─ Center hub ─
+  const hubR = R * 0.10;
+  const hg = ctx.createRadialGradient(cx, cy, 0, cx, cy, hubR);
+  hg.addColorStop(0, '#FF8800');
+  hg.addColorStop(0.5, '#CC3300');
+  hg.addColorStop(1, '#110000');
+  ctx.beginPath();
+  ctx.arc(cx, cy, hubR, 0, Math.PI * 2);
+  ctx.fillStyle = hg;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, hubR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ─ Digital speed ─
+  const displayVal = Math.round(speed);
+  const fontSize = R * 0.38;
+  ctx.font = `900 ${fontSize}px 'Orbitron', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowBlur = 16;
+  ctx.shadowColor = 'rgba(255,200,100,0.4)';
+  ctx.fillText(displayVal, cx, cy + R * 0.20);
+  ctx.shadowBlur = 0;
+
+  // Unit label below
+  ctx.font = `600 ${R * 0.09}px 'Barlow Condensed', sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText(unitLabel(), cx, cy + R * 0.37);
 }
 
-// ── PERFORMANCE TIMER ENGINE ──────────────────────────────
-function perfUpdate(mph,lat,lon,ts){
-  const p=D.perf;
-  const isQmi=perfRunIdx===2;
+/* ════════════════════════════════════
+   DRAW G-FORCE
+════════════════════════════════════ */
+function drawGForce(ax, ay) {
+  const ctx = gforceCtx;
+  const W = gforceW, H = gforceH;
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) / 2 * 0.88;
+  const MAX_G = 2.0;
+  const scale = R / MAX_G;
 
-  if(p.state==='idle'){
-    // Quarter mile: near-complete stop required (<1.5 mph).
-    // 0-30 and 0-60: forgiving (<3 mph).
-    const armThr=isQmi?1.5:3;
-    if(mph<armThr){p.state='armed';perfShowStrip();}
-    return;
-  }
+  ctx.clearRect(0, 0, W, H);
 
-  if(p.state==='armed'){
-    const armThr=isQmi?1.5:3;
-    if(mph>=armThr){
-      // Launch
-      p.state='running';p.startTS=ts;p.startPos=[lat,lon];
-      p.launchDist=D.distMi;p.hit30=false;p.hit60=false;p.hitQmi=false;
-      p.t30=0;p.t60=0;p.tQmi=0;p.peakMph=0;
-      perfShowStrip();
-      function rafLoop(){
-        if(p.state!=='running')return;
-        p.elapsed=(Date.now()-p.startTS)/1000;
-        $('perfTime').textContent=p.elapsed.toFixed(2);
-        p.animID=requestAnimationFrame(rafLoop);
-      }
-      p.animID=requestAnimationFrame(rafLoop);
+  // Background
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#07071A';
+  ctx.fill();
+
+  // Grid rings
+  [0.5, 1.0, 1.5, 2.0].forEach((g, i) => {
+    const r = g * scale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = i === 1 ? 'rgba(0,207,255,0.25)' : 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = i === 1 ? 1.5 : 1;
+    ctx.stroke();
+    if (i === 1) {
+      ctx.fillStyle = 'rgba(0,207,255,0.4)';
+      ctx.font = `600 ${R * 0.12}px 'Barlow Condensed'`;
+      ctx.textAlign = 'right';
+      ctx.fillText('1G', cx + r - 3, cy - 3);
     }
-    return;
+  });
+
+  // Cross lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = `700 ${R * 0.11}px 'Barlow Condensed'`;
+  ctx.textAlign = 'center';
+  ctx.fillText('ACCEL', cx, cy - R * 0.75);
+  ctx.fillText('BRAKE', cx, cy + R * 0.83);
+
+  // Trail
+  S.gTrail.forEach((pt, i) => {
+    const alpha = (i / S.gTrail.length) * 0.6;
+    const px = cx + pt.x * scale;
+    const py = cy - pt.y * scale;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,100,0,${alpha})`;
+    ctx.fill();
+  });
+
+  // Live dot
+  const mag = Math.sqrt(ax * ax + ay * ay);
+  const dotX = cx + ax * scale;
+  const dotY = cy - ay * scale;
+  const t = Math.min(mag / MAX_G, 1);
+  const r = Math.round(255 * t), g2 = Math.round(230 * (1 - t));
+  const dotColor = `rgb(${r},${g2},0)`;
+
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 6, 0, Math.PI * 2);
+  ctx.fillStyle = dotColor;
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = dotColor;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Border ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/* ════════════════════════════════════
+   DRAW HEADING/COMPASS
+════════════════════════════════════ */
+function drawHeading(heading) {
+  const ctx = headingCtx;
+  const W = headingW, H = headingH;
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) / 2 * 0.88;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#07071A';
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-heading * Math.PI / 180);
+
+  // Outer tick ring
+  for (let d = 0; d < 360; d += 5) {
+    const a = d * Math.PI / 180;
+    const isMajor = d % 45 === 0;
+    const isMid = d % 15 === 0;
+    const oR = R * 0.96;
+    const iR = isMajor ? R * 0.76 : (isMid ? R * 0.84 : R * 0.90);
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * oR, Math.sin(a) * oR);
+    ctx.lineTo(Math.cos(a) * iR, Math.sin(a) * iR);
+    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = isMajor ? 2 : 1;
+    ctx.stroke();
   }
 
-  if(p.state==='running'){
-    const elapsed=(ts-p.startTS)/1000;
-    if(mph>p.peakMph)p.peakMph=mph;
+  // Cardinal labels
+  const cardinals = ['N', 'E', 'S', 'W'];
+  const cardAngles = [0, 90, 180, 270];
+  cardAngles.forEach((deg, i) => {
+    const a = deg * Math.PI / 180;
+    const lr = R * 0.64;
+    ctx.fillStyle = i === 0 ? '#FF3D00' : 'rgba(255,255,255,0.55)';
+    ctx.font = `700 ${R * 0.14}px 'Barlow Condensed'`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(cardinals[i], Math.cos(a) * lr, Math.sin(a) * lr);
+  });
 
-    // -- Cancellation rules --
-    // QMI: if peak hasn't hit 20 mph by 8s it was an accidental trigger
-    if(isQmi&&elapsed>8&&p.peakMph<20){perfCancel();return;}
-    // QMI: hard 45-second cap
-    if(isQmi&&elapsed>45){perfCancel();return;}
-    // All modes: speed fell back under 3 mph before target hit
-    if(elapsed>6&&mph<3){perfCancel();return;}
+  ctx.restore();
 
-    // -- Target checks --
-    if(!p.hit30&&mph>=30){p.hit30=true;p.t30=elapsed;}
-    if(!p.hit60&&mph>=60){p.hit60=true;p.t60=elapsed;
-      if(perfRunIdx===1)perfRunComplete('0–60 mph',p.t60,'t60',lat,lon);}
-    if(perfRunIdx===0&&p.hit30&&!p.hitQmi){
-      p.hitQmi=true;
-      perfRunComplete('0–30 mph',p.t30,'t30',lat,lon);
-    }
-    const distFromLaunch=(D.distMi-p.launchDist)*1609.344;
-    if(!p.hitQmi&&distFromLaunch>=402.336){
-      p.hitQmi=true;p.tQmi=elapsed;
-      if(perfRunIdx===2)perfRunComplete('¼ Mile',p.tQmi,'tQmi',lat,lon);
-    }
+  // Fixed north pointer triangle (always points up = current heading direction)
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Triangle pointing up (north direction = current heading shown at top)
+  ctx.beginPath();
+  ctx.moveTo(0, -R * 0.5);
+  ctx.lineTo(R * 0.08, -R * 0.22);
+  ctx.lineTo(-R * 0.08, -R * 0.22);
+  ctx.closePath();
+  ctx.fillStyle = '#FF3D00';
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = 'rgba(255,61,0,0.6)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(0, R * 0.5);
+  ctx.lineTo(R * 0.08, R * 0.22);
+  ctx.lineTo(-R * 0.08, R * 0.22);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.shadowBlur = 0;
+  ctx.fill();
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(0, 0, R * 0.07, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#fff';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+
+  // Border
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/* ════════════════════════════════════
+   GPS
+════════════════════════════════════ */
+let gpsWatchId = null;
+
+function startGPS() {
+  if (!navigator.geolocation) return;
+  gpsWatchId = navigator.geolocation.watchPosition(
+    onGPSSuccess,
+    onGPSError,
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
+}
+
+function onGPSSuccess(pos) {
+  const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+
+  if (!S.sessionStart) S.sessionStart = Date.now();
+
+  const speedMps = speed !== null && speed >= 0 ? speed : 0;
+  S.speed = speedConvert(speedMps);
+  S.accuracy = accuracy;
+  S.heading = heading !== null ? heading : S.heading;
+
+  // GPS badge
+  const badge = document.getElementById('gps-badge');
+  const label = document.getElementById('gps-label');
+  if (!S.gpsActive) {
+    S.gpsActive = true;
+    badge.classList.add('active');
   }
-}
+  const accStr = accuracy !== null ? Math.round(accuracy) + 'm' : 'GPS';
+  label.textContent = accStr;
 
-function perfCancel(){
-  const p=D.perf;
-  if(p.animID){cancelAnimationFrame(p.animID);p.animID=null;}
-  p.state='idle';
-  $('perfTime').textContent='--';
-  setTimeout(perfHideStrip,700);
-}
-function perfShowStrip(){
-  const s=$('perfStrip'),arm=$('perfArmBadge'),lbl=$('perfLabel');
-  s.classList.add('active');
-  if(D.perf.state==='armed'){
-    arm.style.display='inline-flex';lbl.textContent=perfRunLabel();$('perfTime').textContent='0.00';
-    $('perfTime').classList.remove('perf-done');
-  } else {
-    arm.style.display='none';lbl.textContent=perfRunLabel();
-    $('perfTime').classList.remove('perf-done');
-  }
-}
-function perfHideStrip(){$('perfStrip').classList.remove('active');}
-function perfRunComplete(label,elapsed,key,lat,lon){
-  if(D.perf.animID){cancelAnimationFrame(D.perf.animID);D.perf.animID=null;}
-  D.perf.state='done';
-  $('perfTime').textContent=elapsed.toFixed(2);
-  $('perfTime').classList.add('perf-done');
-  // Check personal best
-  const bests=LS.get(K.bests,{});
-  const isPB=!bests[key]||elapsed<bests[key].time;
-  if(isPB){bests[key]={time:elapsed,date:new Date().toISOString(),lat,lon};LS.set(K.bests,bests);}
-  // Show result modal
-  $('prLabel').textContent=label;
-  $('prTime').textContent=elapsed.toFixed(2)+'s';
-  $('prSub').textContent=isPB?'Personal best!':'Previous: '+(bests[key]?bests[key].time.toFixed(2)+'s':'—');
-  $('prPb').style.display=isPB?'block':'none';
-  $('perfResult').classList.add('show');
-  if(navigator.vibrate)navigator.vibrate([80,40,80,40,120]);
-  renderPersonalBests();
-  // Re-arm after short delay
-  setTimeout(()=>{D.perf.state='idle';perfHideStrip();},3000);
-}
-
-function dUpdateHUD(){
-  const mph=D.prevSpdMs*2.23694;
-  $('hudSpd').textContent=mph.toFixed(0);
-  $('hudTime').textContent=fmtT(D.secs);
-  $('hudDist').textContent=D.distMi.toFixed(2);
-  $('hudTop').textContent=D.topSpd.toFixed(0);
-  $('hudG').textContent=(D.topAccel/9.81).toFixed(2);
-  const bs=spdBarStyle(mph);
-  const bar=$('spdBar');bar.style.width=bs.width;bar.style.background=bs.color;
-}
-function dStop(){
-  D.running=false;
-  if(D.timerID){clearInterval(D.timerID);D.timerID=null;}
-  if(D.watchId!==null){navigator.geolocation.clearWatch(D.watchId);D.watchId=null;}
-  if(D.wakeLock){D.wakeLock.release().catch(()=>{});D.wakeLock=null;}
-  $('dtRec').classList.remove('active');
-  $('dtIdle').style.display='flex';
-  $('driveNav').classList.remove('gone');
-  $('driveAppBar').style.display='flex';
-  // Save
-  // Cancel any active perf animation
-  if(D.perf.animID){cancelAnimationFrame(D.perf.animID);D.perf.animID=null;}
-  perfHideStrip();$('perfResult').classList.remove('show');
-  const sess={
-    id:Date.now()+'',date:D.startTime,secs:D.secs,distMi:D.distMi,
-    topSpd:D.topSpd,topSpdLat:D.topSpdLat,topSpdLon:D.topSpdLon,
-    topAccel:D.topAccel,topAccelLat:D.topAccelLat,topAccelLon:D.topAccelLon,
-    pts:D.pts,brakes:D.brakes,
-    t30:D.perf.t30,t60:D.perf.t60,tQmi:D.perf.tQmi,
-  };
-  const drives=LS.get(K.drives,[]);drives.push(sess);LS.set(K.drives,drives.slice(-60));
-  // Update all-time totals
-  const tot=LS.get(K.totals,{dist:0,time:0,trips:0,topSpd:0,topSpdLat:0,topSpdLon:0,topAccel:0,topAccelLat:0,topAccelLon:0});
-  tot.dist+=D.distMi;tot.time+=D.secs;tot.trips++;
-  if(D.topSpd>tot.topSpd){tot.topSpd=D.topSpd;tot.topSpdLat=D.topSpdLat;tot.topSpdLon=D.topSpdLon;}
-  if(D.topAccel>tot.topAccel){tot.topAccel=D.topAccel;tot.topAccelLat=D.topAccelLat;tot.topAccelLon=D.topAccelLon;}
-  LS.set(K.totals,tot);
-  updateLastDrive();renderDrivesList();renderDriveStats();renderPersonalBests();
-}
-
-function updateLastDrive(){
-  const drives=LS.get(K.drives,[]);
-  if(!drives.length){$('lastDriveCard').style.display='none';return;}
-  const d=drives[drives.length-1];
-  $('lastDriveCard').style.display='block';
-  $('lastDriveStats').innerHTML=`
-    <div class="ld-s"><div class="ld-v">${d.distMi.toFixed(2)}</div><div class="ld-sub">miles</div></div>
-    <div class="ld-s"><div class="ld-v">${fmtT(d.secs)}</div><div class="ld-sub">duration</div></div>
-    <div class="ld-s"><div class="ld-v">${d.topSpd.toFixed(0)}</div><div class="ld-sub">top mph</div></div>
-    <div class="ld-s"><div class="ld-v">${(d.topAccel/9.81).toFixed(2)}g</div><div class="ld-sub">max accel</div></div>`;
-}
-
-function renderDrivesList(){
-  const drives=LS.get(K.drives,[]).slice().reverse();
-  const el=$('drivesListEl');
-  if(!drives.length){el.innerHTML='<div class="empty-state">No drives yet.<br>Start your first drive!</div>';return;}
-  el.innerHTML=drives.map(d=>`
-    <div class="drive-card" data-id="${d.id}">
-      <div class="dc-top">
-        <div class="dc-date">${fmtDate(d.date)}</div>
-        <div class="dc-dur">${fmtT(d.secs)}</div>
-      </div>
-      <div class="dc-grid">
-        <div class="dc-s"><div class="dc-v">${d.distMi.toFixed(2)} mi</div><div class="dc-l">Distance</div></div>
-        <div class="dc-s"><div class="dc-v">${d.topSpd.toFixed(0)} mph</div><div class="dc-l">Top Speed</div></div>
-        <div class="dc-s"><div class="dc-v">${(d.topAccel/9.81).toFixed(2)} g</div><div class="dc-l">Max Accel</div></div>
-      </div>
-    </div>`).join('');
-  el.querySelectorAll('.drive-card').forEach(c=>c.addEventListener('click',()=>{
-    const d=drives.find(x=>x.id===c.dataset.id);if(d)openDriveDetail(d);
-  }));
-}
-
-function renderPersonalBests(){
-  const bests=LS.get(K.bests,{});
-  const drives=LS.get(K.drives,[]);
-  const totals=LS.get(K.totals,{topSpd:0,topAccel:0});
-  // Longest single drive
-  const longest=drives.length?drives.reduce((a,b)=>b.distMi>a.distMi?b:a,drives[0]):null;
-  // Most miles in a day
-  const byDay={};drives.forEach(d=>{const day=d.date.slice(0,10);byDay[day]=(byDay[day]||0)+d.distMi;});
-  let bestDay=null,bestDayMi=0;
-  Object.entries(byDay).forEach(([day,mi])=>{if(mi>bestDayMi){bestDayMi=mi;bestDay=day;}});
-
-  function pbCard(icon,name,val,sub,date,locFn,isGold=false){
-    const set=val!==null&&val!==undefined&&val!==0;
-    return `<div class="pb-card${isGold?' gold':''}">
-      <div class="pb-icon">${icon}</div>
-      <div class="pb-info">
-        <div class="pb-name">${name}</div>
-        ${set
-          ?`<div class="pb-val">${val}</div><div class="pb-date">${date||''}</div>${locFn?`<div class="pb-loc" onclick="${locFn}">📍 View</div>`:''}`
-          :`<div class="pb-unset">Not set</div>`}
-      </div>
-    </div>`;
-  }
-
-  const fmt=iso=>iso?new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'';
-
-  let html='';
   // Top speed
-  html+=pbCard('⚡','Top Speed',
-    totals.topSpd>0?`${totals.topSpd.toFixed(0)} mph`:null,'',
-    '',
-    totals.topSpd>0&&totals.topSpdLat?`openPinMap('Top Speed',${totals.topSpdLat},${totals.topSpdLon},'⚡','Top Speed: ${totals.topSpd.toFixed(0)} mph',[{v:'${totals.topSpd.toFixed(0)} mph',l:'Speed'}])`:null,
-    true);
-  // 0-30
-  html+=pbCard('🟢','0 – 30 mph',
-    bests.t30?`${bests.t30.time.toFixed(2)}s`:null,'',
-    bests.t30?fmt(bests.t30.date):'',
-    bests.t30&&bests.t30.lat?`openPinMap('0–30 Location',${bests.t30.lat},${bests.t30.lon},'🟢','0–30 mph: ${bests.t30.time.toFixed(2)}s',[{v:'${bests.t30.time.toFixed(2)}s',l:'Time'}])`:null);
-  // 0-60
-  html+=pbCard('🔥','0 – 60 mph',
-    bests.t60?`${bests.t60.time.toFixed(2)}s`:null,'',
-    bests.t60?fmt(bests.t60.date):'',
-    bests.t60&&bests.t60.lat?`openPinMap('0–60 Location',${bests.t60.lat},${bests.t60.lon},'🔥','0–60 mph: ${bests.t60.time.toFixed(2)}s',[{v:'${bests.t60.time.toFixed(2)}s',l:'Time'}])`:null,
-    true);
-  // Quarter mile
-  html+=pbCard('🏁','Quarter Mile',
-    bests.tQmi?`${bests.tQmi.time.toFixed(2)}s`:null,'',
-    bests.tQmi?fmt(bests.tQmi.date):'',
-    bests.tQmi&&bests.tQmi.lat?`openPinMap('¼ Mile Location',${bests.tQmi.lat},${bests.tQmi.lon},'🏁','¼ Mile: ${bests.tQmi.time.toFixed(2)}s',[{v:'${bests.tQmi.time.toFixed(2)}s',l:'Time'}])`:null);
-  // Hardest brake
-  const allBrakes=drives.flatMap(d=>d.brakes||[]);
-  const hardest=allBrakes.length?allBrakes.reduce((a,b)=>b.force>a.force?b:a,allBrakes[0]):null;
-  html+=pbCard('🛑','Hardest Brake',
-    hardest?`${(hardest.force/9.81).toFixed(2)} g`:null,'',
-    hardest?`${hardest.mph.toFixed(0)} mph → 0`:'',
-    hardest?`openPinMap('Hardest Brake',${hardest.lat},${hardest.lon},'🛑','Brake: ${(hardest.force/9.81).toFixed(2)} g',[{v:'${(hardest.force/9.81).toFixed(2)} g',l:'Force'},{v:'${hardest.mph.toFixed(0)} mph',l:'Speed'}])`:null);
-  // Longest drive
-  html+=pbCard('🗺','Longest Drive',
-    longest?`${longest.distMi.toFixed(2)} mi`:null,'',
-    longest?fmt(longest.date):'',null);
-  // Best day
-  html+=pbCard('📅','Best Day',
-    bestDay?`${bestDayMi.toFixed(1)} mi`:null,'',
-    bestDay?bestDay.split('-').reverse().join('/'):'',null);
-
-  const el=$('pbGridEl');if(el)el.innerHTML=html;
-}
-
-function renderDriveStats(){
-  const tot=LS.get(K.totals,{dist:0,time:0,trips:0,topSpd:0,topAccel:0});
-  const drives=LS.get(K.drives,[]);
-  const avgDist=tot.trips?tot.dist/tot.trips:0;
-  const avgTime=tot.trips?Math.round(tot.time/tot.trips):0;
-  $('statsGridEl').innerHTML=`
-    <div class="sg-card hl wide">
-      <div class="sg-lbl">Total Distance Driven</div>
-      <div class="sg-v">${tot.dist.toFixed(1)} mi</div>
-      <div class="sg-sub">${tot.trips} drive${tot.trips!==1?'s':''} recorded · ${fmtT(tot.time)} total</div>
-    </div>
-    <div class="sg-card">
-      <div class="sg-lbl">Top Speed</div>
-      <div class="sg-v">${tot.topSpd.toFixed(0)} mph</div>
-      <div class="sg-sub">All-time record</div>
-      ${tot.topSpd>0&&tot.topSpdLat?`<div class="sg-loc" id="sTopSpdBtn">📍 View on map</div>`:''}
-    </div>
-    <div class="sg-card">
-      <div class="sg-lbl">Max Acceleration</div>
-      <div class="sg-v">${(tot.topAccel/9.81).toFixed(2)} g</div>
-      <div class="sg-sub">${tot.topAccel.toFixed(2)} m/s²</div>
-      ${tot.topAccel>0&&tot.topAccelLat?`<div class="sg-loc" id="sTopAccBtn">📍 View on map</div>`:''}
-    </div>`;
-  $('statsDetailEl').innerHTML=`
-    <div class="sr"><div class="sr-l">Avg Drive Distance</div><div class="sr-v">${avgDist.toFixed(2)} mi</div></div>
-    <div class="sr"><div class="sr-l">Avg Drive Duration</div><div class="sr-v">${fmtT(avgTime)}</div></div>
-    <div class="sr"><div class="sr-l">Total Time Driven</div><div class="sr-v">${fmtT(tot.time)}</div></div>
-    <div class="sr"><div class="sr-l">Total Drives</div><div class="sr-v">${tot.trips}</div></div>`;
-  const ssb=$('sTopSpdBtn');
-  if(ssb)ssb.addEventListener('click',()=>{
-    const tot2=LS.get(K.totals,{});
-    openPinMap('Top Speed Location',tot2.topSpdLat,tot2.topSpdLon,'⚡',`Top Speed: ${tot2.topSpd.toFixed(0)} mph`,
-      [{v:`${tot2.topSpd.toFixed(0)} mph`,l:'Top Speed'},{v:`${tot2.dist.toFixed(1)} mi`,l:'Total Dist'},{v:tot2.trips,l:'Drives'}]);
-  });
-  const sab=$('sTopAccBtn');
-  if(sab)sab.addEventListener('click',()=>{
-    const tot2=LS.get(K.totals,{});
-    openPinMap('Max Accel Location',tot2.topAccelLat,tot2.topAccelLon,'💥',`Max Accel: ${(tot2.topAccel/9.81).toFixed(2)} g`,
-      [{v:`${(tot2.topAccel/9.81).toFixed(2)} g`,l:'Max Accel'},{v:`${tot2.topAccel.toFixed(2)} m/s²`,l:'m/s²'},{v:tot2.trips,l:'Drives'}]);
-  });
-}
-
-// Drive detail map
-function initDetailMap(){
-  if(detailMapObj)return;
-  detailMapObj=L.map('detailMapEl',{zoomControl:true,attributionControl:true});
-  detailTileLayer=L.tileLayer(tileURL(),{attribution:TILE_ATTR,maxZoom:19,subdomains:'abcd'}).addTo(detailMapObj);
-}
-function clearDetailMapLayers(){
-  if(!detailMapObj)return;
-  detailMapObj.eachLayer(l=>{if(l instanceof L.Polyline||l instanceof L.Marker)detailMapObj.removeLayer(l);});
-}
-
-function openDriveDetail(session){
-  $('detailTitleEl').textContent=fmtDate(session.date);
-  const brakeCount=(session.brakes&&session.brakes.length)||0;
-  $('detailStatsEl').innerHTML=`
-    <div class="ms"><div class="ms-v">${session.distMi.toFixed(2)} mi</div><div class="ms-l">Distance</div></div>
-    <div class="ms"><div class="ms-v">${fmtT(session.secs)}</div><div class="ms-l">Duration</div></div>
-    <div class="ms"><div class="ms-v">${session.topSpd.toFixed(0)} mph</div><div class="ms-l">Top Speed</div></div>
-    <div class="ms"><div class="ms-v">${brakeCount}</div><div class="ms-l">Hard Brakes</div></div>`;
-  $('detailOv').classList.add('open');
-  setTimeout(()=>{
-    initDetailMap();clearDetailMapLayers();
-    drawSessionRoute(session);
-    detailMapObj.invalidateSize();
-  },130);
-}
-
-function openPinMap(title,lat,lon,icon,popup,stats){
-  $('detailTitleEl').textContent=title;
-  $('detailStatsEl').innerHTML=stats.map(s=>`<div class="ms"><div class="ms-v">${s.v}</div><div class="ms-l">${s.l}</div></div>`).join('');
-  $('detailOv').classList.add('open');
-  setTimeout(()=>{
-    initDetailMap();clearDetailMapLayers();
-    const mi=L.divIcon({html:`<div class="top-spd-pin">${icon}</div>`,className:'',iconSize:[28,28],iconAnchor:[14,14]});
-    L.marker([lat,lon],{icon:mi}).bindPopup(popup).addTo(detailMapObj);
-    detailMapObj.setView([lat,lon],14);
-    detailMapObj.invalidateSize();
-  },130);
-}
-
-function drawSessionRoute(session){
-  if(!session.pts||session.pts.length<2){
-    if(session.pts&&session.pts.length===1)detailMapObj.setView([session.pts[0].la,session.pts[0].lo],14);
-    return;
+  if (S.speed > S.topSpeed) {
+    const prev = S.topSpeed;
+    S.topSpeed = S.speed;
+    if (prev > 5) showTopSpeedToast();
   }
-  // Build colour-segmented polylines
-  let curCol=null,curPts=[],allPts=[];
-  session.pts.forEach(p=>{
-    const col=zoneColor(p.sp||0),pt=[p.la,p.lo];
-    allPts.push(pt);
-    if(col!==curCol||!curPts.length){
-      if(curPts.length>1)L.polyline(curPts,{color:curCol,weight:5,opacity:.92,lineJoin:'round'}).addTo(detailMapObj);
-      curCol=col;curPts=curPts.length?[curPts[curPts.length-1],pt]:[pt];
-    }else{curPts.push(pt);}
-  });
-  if(curPts.length>1)L.polyline(curPts,{color:curCol,weight:5,opacity:.92,lineJoin:'round'}).addTo(detailMapObj);
-  // Start/end dots
-  const si=L.divIcon({html:'<div class="start-pin"></div>',className:'',iconSize:[12,12],iconAnchor:[6,6]});
-  const ei=L.divIcon({html:'<div class="end-pin"></div>',className:'',iconSize:[12,12],iconAnchor:[6,6]});
-  L.marker(allPts[0],{icon:si,zIndexOffset:500}).addTo(detailMapObj);
-  L.marker(allPts[allPts.length-1],{icon:ei,zIndexOffset:500}).addTo(detailMapObj);
-  // Top speed pin
-  if(session.topSpd>0&&session.topSpdLat){
-    const ti=L.divIcon({html:'<div class="top-spd-pin">⚡</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
-    L.marker([session.topSpdLat,session.topSpdLon],{icon:ti,zIndexOffset:1000})
-      .bindPopup(`Top Speed: ${session.topSpd.toFixed(0)} mph`).addTo(detailMapObj);
-  }
-  // Max accel pin
-  if(session.topAccel>0&&session.topAccelLat){
-    const ai=L.divIcon({html:'<div class="top-acc-pin">💥</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
-    L.marker([session.topAccelLat,session.topAccelLon],{icon:ai,zIndexOffset:900})
-      .bindPopup(`Max Accel: ${(session.topAccel/9.81).toFixed(2)} g`).addTo(detailMapObj);
-  }
-  // Hard brake pins
-  if(session.brakes&&session.brakes.length){
-    session.brakes.forEach(b=>{
-      const bi=L.divIcon({html:'<div class="brake-pin">🛑</div>',className:'',iconSize:[22,22],iconAnchor:[11,11]});
-      L.marker([b.lat,b.lon],{icon:bi,zIndexOffset:800})
-        .bindPopup(`Hard brake: ${(b.force/9.81).toFixed(2)} g at ${b.mph.toFixed(0)} mph`).addTo(detailMapObj);
-    });
-  }
-  detailMapObj.fitBounds(allPts,{padding:[30,30]});
-}
 
-// ─── SETTINGS ─────────────────────────────────────────────────
-function openSettings(){
-  $('inBase').value=S.baseFare.toFixed(2);
-  $('inRate').value=S.ratePerMile.toFixed(2);
-  $('inWait').value=S.waitRate.toFixed(2);
-  $('inMin').value=S.minFare.toFixed(2);
-  $('togTheme').classList.toggle('on',!isDark());
-  $('togAuto').classList.toggle('on',S.autoNight);
-  $('settOv').classList.add('open');
-}
-function closeSettings(){
-  const b=parseFloat($('inBase').value),r=parseFloat($('inRate').value);
-  const w=parseFloat($('inWait').value),m=parseFloat($('inMin').value);
-  if(!isNaN(b)&&b>=0)S.baseFare=b;if(!isNaN(r)&&r>=0)S.ratePerMile=r;
-  if(!isNaN(w)&&w>=0)S.waitRate=w;if(!isNaN(m)&&m>=0)S.minFare=m;
-  saveS();$('settOv').classList.remove('open');
-  $('svMinD').textContent=gbp(S.minFare);
-}
-
-// ─── INIT ──────────────────────────────────────────────────────
-function init(){
-  loadS();drawTicks();applyTheme(isDark());
-  renderHistory();renderEarnings();renderDrivesList();renderDriveStats();renderPersonalBests();updateLastDrive();
-
-  // Home
-  $('cardTaxi').addEventListener('click',()=>goTo('sTaxi'));
-  $('cardDrive').addEventListener('click',()=>goTo('sDrive'));
-  $('homeTheme').addEventListener('click',()=>{applyTheme(!isDark());saveS();});
-
-  // Taxi
-  $('taxiBack').addEventListener('click',()=>{
-    if(T.running&&!confirm('Trip in progress. Go home?'))return;
-    if(T.running)tStop();goHome();
-  });
-  $('btnStart').addEventListener('click',tStart);
-  $('btnEnd').addEventListener('click',tStop);
-  $('btnNew').addEventListener('click',tReset);
-  $('taxiSettBtn').addEventListener('click',openSettings);
-  $('taxiMapBtn').addEventListener('click',()=>{
-    const h=LS.get(K.taxi,[]);if(!h.length)return;
-    const last=h[h.length-1];
-    $('detailTitleEl').textContent='Trip Route';
-    $('detailStatsEl').innerHTML=`
-      <div class="ms"><div class="ms-v">${last.distMi.toFixed(2)} mi</div><div class="ms-l">Distance</div></div>
-      <div class="ms"><div class="ms-v">${fmtT(last.secs)}</div><div class="ms-l">Duration</div></div>
-      <div class="ms"><div class="ms-v">${gbp(last.fare)}</div><div class="ms-l">Fare</div></div>`;
-    $('detailOv').classList.add('open');
-    setTimeout(()=>{
-      initDetailMap();clearDetailMapLayers();
-      if(last.routePts&&last.routePts.length>1){
-        const pl=L.polyline(last.routePts,{color:getComputedStyle(document.documentElement).getPropertyValue('--amber').trim()||'#ffb300',weight:5,opacity:.9}).addTo(detailMapObj);
-        detailMapObj.fitBounds(last.routePts,{padding:[30,30]});
-      }
-      detailMapObj.invalidateSize();
-    },130);
-  });
-  document.querySelectorAll('#taxiNav .nb').forEach(b=>b.addEventListener('click',function(){switchTab(this,'sTaxi',this.dataset.tab);}));
-
-  // Receipt
-  $('recCloseBtn').addEventListener('click',()=>$('recOv').classList.remove('open'));
-  $('recShareBtn').addEventListener('click',()=>{
-    const txt=$('recBodyEl').innerText;
-    if(navigator.share)navigator.share({title:'Trip Receipt',text:txt}).catch(()=>{});
-    else if(navigator.clipboard)navigator.clipboard.writeText(txt);
-  });
-  $('recOv').addEventListener('click',e=>{if(e.target===$('recOv'))$('recOv').classList.remove('open');});
-
-  // Drive
-  $('driveBack').addEventListener('click',()=>{
-    if(D.running&&!confirm('Drive in progress. Go home?'))return;
-    if(D.running)dStop();goHome();
-  });
-  $('dtBtnStart').addEventListener('click',dStart);
-  // Dismiss perf result
-  $('prDismiss').addEventListener('click',()=>{$('perfResult').classList.remove('show');});
-  // Tap the strip to cycle which run is armed
-  $('perfStrip').addEventListener('click',()=>{
-    if(D.perf.state==='armed'||D.perf.state==='idle'){
-      perfRunIdx=(perfRunIdx+1)%3;
-      $('perfLabel').textContent=perfRunLabel();
+  // Distance
+  if (S.lastPos) {
+    const dist = haversine(S.lastPos.lat, S.lastPos.lng, latitude, longitude);
+    if (dist < 200) { // ignore GPS jumps > 200m
+      S.totalDist += dist;
     }
-  });
-  $('snapBtn').addEventListener('click',()=>{
-    if(liveMapObj&&D.lastLat)liveMapObj.setView([D.lastLat,D.lastLon],15,{animate:true});
-  });
-  $('dtBtnStop').addEventListener('click',dStop);
-  $('driveSettBtn').addEventListener('click',openSettings);
-  document.querySelectorAll('#driveNav .nb').forEach(b=>b.addEventListener('click',function(){
-    switchTab(this,'sDrive',this.dataset.tab);
-    if(this.dataset.tab==='dLive'&&D.running&&liveMapObj)setTimeout(()=>liveMapObj.invalidateSize(),100);
-    if(this.dataset.tab==='dRecords')renderPersonalBests();
-  }));
+  }
+  S.lastPos = { lat: latitude, lng: longitude };
 
-  // Detail overlay close
-  $('detailCloseBtn').addEventListener('click',()=>$('detailOv').classList.remove('open'));
-  $('detailOv').addEventListener('click',e=>{if(e.target===$('detailOv'))$('detailOv').classList.remove('open');});
+  // Speed samples for avg
+  if (speedMps > 0.5) {
+    S.speedSamples.push(S.speed);
+    if (S.speedSamples.length > 500) S.speedSamples.shift();
+  }
 
-  // Settings toggles + close
-  $('clearAllBtn').addEventListener('click',()=>{
-    if(!confirm('Delete ALL data? This cannot be undone.\n\nThis will clear:\n• All taxi trips & earnings\n• All drives & statistics'))return;
-    [K.taxi,K.drives,K.totals].forEach(k=>localStorage.removeItem(k));
-    renderHistory();renderEarnings();renderDrivesList();renderDriveStats();renderPersonalBests();updateLastDrive();
-    $('settOv').classList.remove('open');
-  });
-  $('togTheme').addEventListener('click',()=>{applyTheme(!isDark());});
-  $('togAuto').addEventListener('click',()=>{S.autoNight=!S.autoNight;$('togAuto').classList.toggle('on',S.autoNight);});
-  $('settDone').addEventListener('click',closeSettings);
-  $('settOv').addEventListener('click',e=>{if(e.target===$('settOv'))closeSettings();});
+  // Trail
+  S.trailPoints.push({ lat: latitude, lng: longitude, speed: S.speed });
+  if (S.trailPoints.length > 2000) S.trailPoints.shift();
 
-  // Estimate
-  $('estCalcBtn').addEventListener('click',doEstimate);
-  $('estLocBtn').addEventListener('click',()=>{
-    navigator.geolocation.getCurrentPosition(p=>{
-      fetch(`https://api.postcodes.io/postcodes?lon=${p.coords.longitude}&lat=${p.coords.latitude}`)
-        .then(r=>r.json()).then(d=>{if(d.result&&d.result[0])$('estFrom').value=d.result[0].postcode;}).catch(()=>{});
-    },()=>{});
-  });
+  // Update map
+  updateMap(latitude, longitude, S.speed);
 
-  // Service worker
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // Sprint 0-60
+  handleSprint(S.speed);
 }
 
-document.addEventListener('DOMContentLoaded',init);
+function onGPSError(e) {
+  // keep quiet but show no GPS
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ════════════════════════════════════
+   ACCELEROMETER
+════════════════════════════════════ */
+function startMotion() {
+  window.addEventListener('devicemotion', onMotion, { passive: true });
+}
+
+function onMotion(e) {
+  const acc = e.accelerationIncludingGravity;
+  if (!acc) return;
+  const G = 9.81;
+  const ax = (acc.x || 0) / G;
+  const ay = (acc.y || 0) / G;
+  S.gForce.x = ax;
+  S.gForce.y = ay;
+  S.gForce.mag = Math.sqrt(ax*ax + ay*ay);
+
+  if (Math.abs(ax) > S.peakLat) S.peakLat = Math.abs(ax);
+  if (Math.abs(ay) > S.peakLon) S.peakLon = Math.abs(ay);
+
+  S.gTrail.push({ x: ax, y: ay });
+  if (S.gTrail.length > 40) S.gTrail.shift();
+}
+
+/* ════════════════════════════════════
+   MAP
+════════════════════════════════════ */
+function initMap() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+
+  map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false,
+  }).setView([51.505, -0.09], 15);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  mapTrail = L.polyline([], { color: '#FF3D00', weight: 4, opacity: 0.9 }).addTo(map);
+
+  const markerIcon = L.divIcon({
+    className: '',
+    html: '<div class="apex-marker"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 20],
+  });
+  mapMarker = L.marker([51.505, -0.09], { icon: markerIcon }).addTo(map);
+}
+
+let mapUpdateTimer = 0;
+function updateMap(lat, lng, speed) {
+  if (!mapInitialized) return;
+  const now = Date.now();
+  if (now - mapUpdateTimer < 500) return;
+  mapUpdateTimer = now;
+
+  // Add to trail with speed color
+  const pts = S.trailPoints.slice(-500).map(p => [p.lat, p.lng]);
+  mapTrail.setLatLngs(pts);
+
+  // Color based on speed
+  const t = Math.min(speed / (S.unit === 'mph' ? 80 : 130), 1);
+  const r = Math.round(255 * t);
+  const g = Math.round(230 * (1 - t * 0.5));
+  mapTrail.setStyle({ color: `rgb(${r},${g},0)` });
+
+  mapMarker.setLatLng([lat, lng]);
+  if (S.mapFollow) {
+    map.setView([lat, lng], map.getZoom(), { animate: true, duration: 0.5 });
+  }
+}
+
+function toggleFollow() {
+  S.mapFollow = !S.mapFollow;
+  const btn = document.getElementById('map-follow-btn');
+  btn.classList.toggle('on', S.mapFollow);
+}
+
+function clearTrail() {
+  S.trailPoints = [];
+  S.totalDist = 0;
+  if (mapTrail) mapTrail.setLatLngs([]);
+}
+
+/* ════════════════════════════════════
+   SPRINT 0–60
+════════════════════════════════════ */
+function handleSprint(speed) {
+  const target = S.unit === 'mph' ? 60 : 96;
+  const threshold = S.unit === 'mph' ? 3 : 5;
+
+  if (S.sprint.state === 'armed') {
+    if (speed >= threshold) {
+      S.sprint.state = 'running';
+      S.sprint.startTime = Date.now();
+      S.sprint.startSpeed = speed;
+      updateSprintUI('running', 0);
+    }
+  } else if (S.sprint.state === 'running') {
+    const elapsed = (Date.now() - S.sprint.startTime) / 1000;
+    const prog = Math.min(speed / target, 1);
+    updateSprintUI('running', prog);
+    updateSprintMilestones(speed);
+
+    if (speed >= target) {
+      S.sprint.state = 'done';
+      S.sprint.endTime = Date.now();
+      const time = ((S.sprint.endTime - S.sprint.startTime) / 1000).toFixed(2);
+      document.getElementById('sprint-val').textContent = time;
+      document.getElementById('sprint-val').classList.add('done');
+      document.getElementById('sprint-status').textContent = 'COMPLETE';
+      document.getElementById('sprint-status').className = 'sprint-status done';
+      document.getElementById('sprint-fill').style.width = '100%';
+      updateSprintMilestones(target);
+    }
+  }
+}
+
+function updateSprintUI(state, prog) {
+  if (state === 'running') {
+    const elapsed = ((Date.now() - S.sprint.startTime) / 1000).toFixed(2);
+    document.getElementById('sprint-val').textContent = elapsed;
+    document.getElementById('sprint-status').textContent = 'RUNNING';
+    document.getElementById('sprint-status').className = 'sprint-status active';
+    document.getElementById('sprint-fill').style.width = (prog * 100) + '%';
+  }
+}
+
+function updateSprintMilestones(speed) {
+  const target = S.unit === 'mph' ? 60 : 96;
+  const ms30 = S.unit === 'mph' ? 30 : 50;
+  const ms45 = S.unit === 'mph' ? 45 : 72;
+  if (speed >= 1) document.getElementById('ms-0').classList.add('reached');
+  if (speed >= ms30) document.getElementById('ms-30').classList.add('reached');
+  if (speed >= ms45) document.getElementById('ms-45').classList.add('reached');
+  if (speed >= target) document.getElementById('ms-60').classList.add('reached');
+}
+
+function resetSprint() {
+  S.sprint = { state: 'armed', startTime: 0, endTime: 0, startSpeed: 0 };
+  document.getElementById('sprint-val').textContent = '—';
+  document.getElementById('sprint-val').classList.remove('done');
+  document.getElementById('sprint-status').textContent = 'ARMED';
+  document.getElementById('sprint-status').className = 'sprint-status';
+  document.getElementById('sprint-fill').style.width = '0%';
+  ['ms-0','ms-30','ms-45','ms-60'].forEach(id => document.getElementById(id).classList.remove('reached'));
+}
+
+/* ════════════════════════════════════
+   LAP TIMER
+════════════════════════════════════ */
+let lapRafId = null;
+
+function lapStartStop() {
+  const btn = document.getElementById('lap-start-btn');
+  const disp = document.getElementById('lap-display');
+
+  if (!S.lap.running) {
+    S.lap.running = true;
+    S.lap.startTime = performance.now();
+    S.lap.lapStart = S.lap.startTime;
+    btn.textContent = 'STOP';
+    btn.style.background = '#E53935';
+    document.getElementById('lap-split-btn').disabled = false;
+    document.getElementById('lap-reset-btn').disabled = false;
+    disp.classList.add('running');
+    document.getElementById('lap-sub').textContent = `Lap ${S.lap.laps.length + 1}`;
+    lapRafId = requestAnimationFrame(tickLap);
+  } else {
+    S.lap.running = false;
+    cancelAnimationFrame(lapRafId);
+    disp.classList.remove('running');
+    btn.textContent = 'START';
+    btn.style.background = '';
+    const elapsed = performance.now() - S.lap.lapStart;
+    if (elapsed > 500) {
+      pushLap(elapsed);
+    }
+    document.getElementById('lap-sub').textContent = '— Stopped —';
+  }
+}
+
+function tickLap() {
+  if (!S.lap.running) return;
+  const now = performance.now();
+  const total = now - S.lap.startTime;
+  const currentLap = now - S.lap.lapStart;
+  document.getElementById('lap-display').textContent = formatLapTime(currentLap);
+  document.getElementById('lap-sub').textContent = `Total: ${formatLapTime(total)}`;
+  lapRafId = requestAnimationFrame(tickLap);
+}
+
+function lapSplit() {
+  if (!S.lap.running) return;
+  const now = performance.now();
+  const elapsed = now - S.lap.lapStart;
+  pushLap(elapsed);
+  S.lap.lapStart = now;
+}
+
+function lapReset() {
+  S.lap.running = false;
+  cancelAnimationFrame(lapRafId);
+  S.lap = { running: false, startTime: 0, elapsed: 0, lastLap: 0, laps: [], lapStart: 0 };
+  document.getElementById('lap-display').textContent = '00:00.000';
+  document.getElementById('lap-display').classList.remove('running');
+  document.getElementById('lap-sub').textContent = '— Press START to begin —';
+  document.getElementById('lap-start-btn').textContent = 'START';
+  document.getElementById('lap-start-btn').style.background = '';
+  document.getElementById('lap-split-btn').disabled = true;
+  document.getElementById('lap-reset-btn').disabled = true;
+  document.getElementById('laps-list').innerHTML = '';
+  document.getElementById('lap-count-label').textContent = 'No laps recorded';
+  document.getElementById('best-lap-label').textContent = '';
+}
+
+function pushLap(ms) {
+  S.lap.laps.push(ms);
+  renderLaps();
+}
+
+function renderLaps() {
+  const laps = S.lap.laps;
+  const list = document.getElementById('laps-list');
+  const best = Math.min(...laps);
+  const worst = Math.max(...laps);
+  list.innerHTML = '';
+  const reversed = [...laps].reverse();
+  reversed.forEach((t, ri) => {
+    const i = laps.length - 1 - ri;
+    const row = document.createElement('div');
+    row.className = 'lap-row' + (t === best && laps.length > 1 ? ' best' : '') + (t === worst && laps.length > 1 ? ' worst' : '');
+    const delta = i > 0 ? t - best : null;
+    const deltaStr = delta !== null ? (delta >= 0 ? '+' : '') + (delta/1000).toFixed(3) : '';
+    row.innerHTML = `
+      <div class="lap-num">LAP ${i+1}</div>
+      <div class="lap-time">${formatLapTime(t)}</div>
+      ${delta !== null ? `<div class="lap-delta ${delta <= 0 ? 'fast' : 'slow'}">${deltaStr}</div>` : ''}
+      ${t === best && laps.length > 1 ? '<span class="lap-badge best">BEST</span>' : ''}
+      ${t === worst && laps.length > 1 ? '<span class="lap-badge worst">SLOW</span>' : ''}
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('lap-count-label').textContent = `${laps.length} lap${laps.length !== 1 ? 's' : ''}`;
+  if (laps.length > 1) {
+    document.getElementById('best-lap-label').textContent = `Best: ${formatLapTime(best)}`;
+  }
+}
+
+function formatLapTime(ms) {
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const ms2 = Math.floor(ms % 1000);
+  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms2.toString().padStart(3,'0')}`;
+}
+
+/* ════════════════════════════════════
+   MAIN RENDER LOOP
+════════════════════════════════════ */
+function render() {
+  const now = Date.now();
+
+  // Smooth speed interpolation
+  const target = S.speed;
+  S.displaySpeed += (target - S.displaySpeed) * 0.25;
+
+  // Draw speedometer
+  if (S.currentScreen === 'gauge') {
+    drawSpeedometer(S.displaySpeed);
+    drawGForce(S.gForce.x, S.gForce.y);
+    drawHeading(S.heading);
+  }
+
+  // Update stats
+  const dist = distConvert(S.totalDist);
+  const avgSpeed = S.speedSamples.length > 0
+    ? S.speedSamples.reduce((a, b) => a + b, 0) / S.speedSamples.length
+    : 0;
+
+  // Gauge screen stats
+  document.getElementById('stat-top').textContent = Math.round(S.topSpeed);
+  document.getElementById('stat-avg').textContent = Math.round(avgSpeed);
+  document.getElementById('stat-dist').textContent = dist.toFixed(1);
+  if (S.sessionStart) {
+    const elapsed = now - S.sessionStart;
+    document.getElementById('stat-time').textContent = formatSessionTime(elapsed);
+  }
+
+  // G readout
+  document.getElementById('g-readout').textContent = S.gForce.mag.toFixed(2) + 'G';
+  document.getElementById('heading-readout').textContent =
+    S.heading !== null ? Math.round(S.heading) + '°' : '---°';
+
+  // Speed mode badge
+  updateModeBadge(S.displaySpeed);
+
+  // Map overlay
+  document.getElementById('map-speed-val').textContent = Math.round(S.displaySpeed);
+  document.getElementById('map-top').textContent = Math.round(S.topSpeed);
+  document.getElementById('map-avg').textContent = Math.round(avgSpeed);
+  document.getElementById('map-dist').textContent = dist.toFixed(1);
+
+  // Data screen
+  document.getElementById('data-top').innerHTML = Math.round(S.topSpeed) + ` <span style="font-size:14px;color:var(--text-2)">${unitLabel()}</span>`;
+  document.getElementById('data-avg').innerHTML = Math.round(avgSpeed) + ` <span style="font-size:14px;color:var(--text-2)">${unitLabel()}</span>`;
+  document.getElementById('data-dist').innerHTML = dist.toFixed(2) + ` <span style="font-size:14px;color:var(--text-2)">${distLabel()}</span>`;
+  if (S.sessionStart) {
+    document.getElementById('data-duration').textContent = formatSessionTime(now - S.sessionStart);
+  }
+
+  // Peak G bars
+  const latPct = Math.min(S.peakLat / 2.5, 1) * 100;
+  const lonPct = Math.min(S.peakLon / 2.5, 1) * 100;
+  document.getElementById('peak-lat-g').textContent = S.peakLat.toFixed(2) + 'G';
+  document.getElementById('peak-lon-g').textContent = S.peakLon.toFixed(2) + 'G';
+  document.getElementById('lat-bar').style.width = latPct + '%';
+  document.getElementById('lon-bar').style.width = lonPct + '%';
+  document.getElementById('lat-pct').textContent = Math.round(latPct) + '%';
+  document.getElementById('lon-pct').textContent = Math.round(lonPct) + '%';
+
+  // Clock
+  const t = new Date();
+  document.getElementById('header-clock').textContent =
+    t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+
+  rafId = requestAnimationFrame(render);
+}
+
+function formatSessionTime(ms) {
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+let lastMode = '';
+function updateModeBadge(speed) {
+  let mode, cls;
+  if (speed < 5) { mode = 'STANDBY'; cls = ''; }
+  else if (speed < (S.unit === 'mph' ? 30 : 48)) { mode = 'URBAN'; cls = ''; }
+  else if (speed < (S.unit === 'mph' ? 70 : 113)) { mode = 'ROAD'; cls = 'mode-road'; }
+  else if (speed < (S.unit === 'mph' ? 100 : 161)) { mode = 'HIGHWAY'; cls = 'mode-highway'; }
+  else { mode = 'TRACK MODE'; cls = 'mode-track'; }
+
+  if (mode !== lastMode) {
+    lastMode = mode;
+    const badge = document.getElementById('mode-badge');
+    badge.textContent = mode;
+    badge.className = cls;
+    if (cls === 'mode-track') triggerFlash();
+  }
+}
+
+function triggerFlash() {
+  const el = document.getElementById('flash-overlay');
+  el.classList.add('flash');
+  setTimeout(() => { el.style.transition = 'opacity 1s'; el.style.opacity = 0; }, 50);
+  setTimeout(() => { el.classList.remove('flash'); el.style.transition = ''; el.style.opacity = ''; }, 1100);
+}
+
+function showTopSpeedToast() {
+  const speed = Math.round(S.topSpeed);
+  document.getElementById('toast-speed').textContent = speed + ' ' + unitLabel();
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+/* ════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════ */
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  S.currentScreen = name;
+
+  if (name === 'map') {
+    initMap();
+    setTimeout(() => map && map.invalidateSize(), 100);
+  }
+}
+
+/* ════════════════════════════════════
+   PERMISSIONS & INIT
+════════════════════════════════════ */
+async function requestPermissions() {
+  // iOS DeviceMotion permission
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    try {
+      const result = await DeviceMotionEvent.requestPermission();
+      if (result === 'granted') startMotion();
+    } catch(e) { startMotion(); }
+  } else {
+    startMotion();
+  }
+
+  // Geolocation
+  startGPS();
+}
+
+document.getElementById('perm-btn').addEventListener('click', async () => {
+  document.getElementById('perm-screen').style.display = 'none';
+  await requestPermissions();
+  startApp();
+});
+
+document.getElementById('perm-skip').addEventListener('click', () => {
+  document.getElementById('perm-screen').style.display = 'none';
+  startApp();
+});
+
+function startApp() {
+  initCanvases();
+  drawSpeedometer(0);
+  drawGForce(0, 0);
+  drawHeading(0);
+  render();
+}
+
+// Check if we should auto-start (non-iOS or already visited)
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+if (!isIOS) {
+  document.getElementById('perm-screen').style.display = 'none';
+  requestPermissions();
+  startApp();
+}
+
+// Handle resize
+window.addEventListener('resize', () => {
+  initCanvases();
+});
 </script>
 </body>
 </html>
