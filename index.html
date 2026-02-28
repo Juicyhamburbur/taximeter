@@ -665,6 +665,19 @@ body::before{
 .ms-v{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text)}
 .ms-l{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--text-d);text-transform:uppercase;margin-top:2px}
 
+/* Snap-to-position button */
+.snap-btn{
+  position:absolute;bottom:18px;right:12px;z-index:500;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--nav);border:1px solid var(--border);
+  color:var(--cyan);font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;backdrop-filter:blur(12px);
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:background .2s,transform .15s;
+}
+.snap-btn:active{transform:scale(.9);background:var(--cyan-s);}
+
 /* Speed zone colors reference */
 /* green #00c853 | yellow #ffd600 | orange #ff6d00 | red #d50000 | purple #aa00ff */
 </style>
@@ -836,6 +849,7 @@ body::before{
       </div>
       <div class="dt-rec" id="dtRec">
         <div id="liveMap"></div>
+        <button class="snap-btn" id="snapBtn" title="Centre on location">◎</button>
         <div class="live-hud">
           <div class="hud-main">
             <div class="hud-spd-block">
@@ -906,6 +920,10 @@ body::before{
     <div class="field">
       <div class="f-info"><div class="f-name">Minimum Fare</div><div class="f-desc">Floor for any trip</div></div>
       <input class="fi-num" id="inMin" type="number" min="0" step="0.5"/>
+    </div>
+    <div style="margin-top:18px;padding-top:4px;border-top:1px solid var(--border)">
+      <button class="danger-btn" id="clearAllBtn" style="margin:14px 0 0">Clear All Data</button>
+      <div style="font-size:11px;color:var(--text-d);text-align:center;margin-top:6px">Permanently deletes all trips, drives and statistics</div>
     </div>
     <button class="sh-done" id="settDone">Done</button>
   </div>
@@ -1277,6 +1295,7 @@ const D={
   prevPos:null,prevTS:0,prevSpdMs:0,
   watchId:null,timerID:null,wakeLock:null,
   startTime:null,pts:[],
+  warmup:0,  // skip first N fixes to avoid GPS jump artifacts
 };
 
 function initLiveMap(){
@@ -1321,7 +1340,7 @@ function addLivePoint(lat,lon,mph){
 
 function dStart(){
   Object.assign(D,{running:true,secs:0,distMi:0,topSpd:0,topAccel:0,
-    prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[]});
+    prevPos:null,prevTS:0,prevSpdMs:0,startTime:new Date().toISOString(),pts:[],warmup:0});
   // UI switch
   $('dtIdle').style.display='none';
   $('dtRec').classList.add('active');
@@ -1337,6 +1356,19 @@ function dTick(){if(!D.running)return;D.secs++;dUpdateHUD();}
 function dOnPos(pos){
   const{latitude:lat,longitude:lon,accuracy,speed}=pos.coords,ts=pos.timestamp;
   if(accuracy>50)return;
+  // Store last known position for snap button regardless of warmup
+  D.lastLat=lat;D.lastLon=lon;
+  // Warmup: accept first 4 fixes to let GPS settle, but don't record data from them
+  if(D.warmup<4){
+    D.warmup++;
+    // Still pan map to first good fix so user sees their position
+    if(liveMapObj){
+      addLivePoint(lat,lon,0);
+      liveMapObj.setView([lat,lon],15,{animate:true});
+    }
+    D.prevPos=[lat,lon];D.prevTS=ts;D.prevSpdMs=0;
+    return;
+  }
   let sMs=(speed!=null&&speed>=0)?speed:D.prevSpdMs;
   if(D.prevPos){
     const dt=(ts-D.prevTS)/1000;
@@ -1618,6 +1650,9 @@ function init(){
     if(D.running)dStop();goHome();
   });
   $('dtBtnStart').addEventListener('click',dStart);
+  $('snapBtn').addEventListener('click',()=>{
+    if(liveMapObj&&D.lastLat)liveMapObj.setView([D.lastLat,D.lastLon],15,{animate:true});
+  });
   $('dtBtnStop').addEventListener('click',dStop);
   $('driveSettBtn').addEventListener('click',openSettings);
   document.querySelectorAll('#driveNav .nb').forEach(b=>b.addEventListener('click',function(){
@@ -1630,6 +1665,12 @@ function init(){
   $('detailOv').addEventListener('click',e=>{if(e.target===$('detailOv'))$('detailOv').classList.remove('open');});
 
   // Settings toggles + close
+  $('clearAllBtn').addEventListener('click',()=>{
+    if(!confirm('Delete ALL data? This cannot be undone.\n\nThis will clear:\n• All taxi trips & earnings\n• All drives & statistics'))return;
+    [K.taxi,K.drives,K.totals].forEach(k=>localStorage.removeItem(k));
+    renderHistory();renderEarnings();renderDrivesList();renderDriveStats();updateLastDrive();
+    $('settOv').classList.remove('open');
+  });
   $('togTheme').addEventListener('click',()=>{applyTheme(!isDark());});
   $('togAuto').addEventListener('click',()=>{S.autoNight=!S.autoNight;$('togAuto').classList.toggle('on',S.autoNight);});
   $('settDone').addEventListener('click',closeSettings);
